@@ -1,100 +1,80 @@
 function simulate_robot()
-    %% Define Fixed Parameters (using provided values)
-    m1 = 0.2393;          % Mass of link 1 (kg)
-    m2 = 0.0368;          % Mass of link 2 (kg)
-    m3 = 0.00783;         % Mass of link 3 (kg)
-    m4 = 0.0155;          % Mass of link 4 (kg)
-    m_body = .1;          % Mass of the body (kg)
+    %% Define Fixed Parameters
+    %left leg is blue and right leg is red
+    % Masses and Inertias for left leg, right leg, and body
+    m1 = 0.2393; m2 = 0.0368; m3 = 0.00783; m4 = 0.0155; 
+    m5 = 0.2393; m6 = 0.0368; m7 = 0.00783; m8 = 0.0155; % Right leg (same as left leg)
+    m_body = 0.1;
+    I1 = 25.1e-6; I2 = 53.5e-6; I3 = 9.25e-6; I4 = 22.176e-6; 
+    I5 = 25.1e-6; I6 = 53.5e-6; I7 = 9.25e-6; I8 = 22.176e-6; % Right leg
+    I_body = 25.1e-6;
+    
+    % Link lengths and distances from joints to centers of mass
+    l_OA = 0.011; l_OB = 0.042; l_AC = 0.096; l_DE = 0.091; l_body = 0.5;
+    l_O_m1 = 0.032; l_B_m2 = 0.0344; l_A_m3 = 0.0622; l_C_m4 = 0.0610;
+    l_B_m_body = l_body / 2;
 
-    I1 = 25.1e-6;         % Inertia of link 1 (kg*m^2)
-    I2 = 53.5e-6;         % Inertia of link 2 (kg*m^2)
-    I3 = 9.25e-6;         % Inertia of link 3 (kg*m^2)
-    I4 = 22.176e-6;       % Inertia of link 4 (kg*m^2)
-    I_body = 25.1e-6;           % Inertia of the body (kg*m^2)
+    % Motor and gravity parameters
+    N = 18.75; Ir = 0.0035 / N^2; g = 9.8;
 
-    l_OA = 0.011;         % Length from joint O to point A (m)
-    l_OB = 0.042;         % Length from joint O to point B (m)
-    l_AC = 0.096;         % Length from point A to point C (m)
-    l_DE = 0.091;         % Length from point D to point E (m)
-    l_body = 0.5;         % Length of the body (m)
+    % Updated parameter vector to match all defined parameters in derive_robot.m
+    p = [m1 m2 m3 m4 m5 m6 m7 m8 m_body I1 I2 I3 I4 I5 I6 I7 I8 I_body Ir N ...
+         l_O_m1 l_B_m2 l_A_m3 l_C_m4 l_B_m_body l_OA l_OB l_AC l_DE l_body g]';
 
-    l_O_m1 = 0.032;       % Distance from O to CoM of link 1 (m)
-    l_B_m2 = 0.0344;      % Distance from B to CoM of link 2 (m)
-    l_A_m3 = 0.0622;      % Distance from A to CoM of link 3 (m)
-    l_C_m4 = 0.0610;      % Distance from C to CoM of link 4 (m)
-    l_B_m_body = l_body / 2; % Distance from B to CoM of the body (m)
-
-    N = 18.75;            % Gear ratio
-    Ir = 0.0035 / N^2;    % Rotor inertia
-
-    g = 9.81;             % Gravitational acceleration (m/s^2)
-
-    %% Parameter vector as per updated derive_leg.m
-    p = [m1 m2 m3 m4 m_body I1 I2 I3 I4 I_body Ir N l_O_m1 l_B_m2 l_A_m3 l_C_m4 l_B_m_body ...
-         l_OA l_OB l_AC l_DE l_body g]';
-
-    %% Initial conditions
-    % Generalized coordinates [x_base; y_base; th1; th2; th3; th4; th5]
-    x_base = 0;       % Initial horizontal position of the base
-    y_base = 1;       % Initial vertical position of the base (1 meter)
-    th1 = pi/4;      % Left leg hip angle
-    th2 = -pi/2;       % Left leg knee angle
-    th3 = pi/4;      % Right leg hip angle
-    th4 = -pi/2;       % Right leg knee angle
-    th5 = 0;          % Body angle
-
-    % Initial velocities
-    dx_base = 0;
-    dy_base = 0;
-    dth1 = 0;
-    dth2 = 0;
-    dth3 = 0;
-    dth4 = 0;
-    dth5 = 0;
-
-    % Initial state vector
+    %% Initial Conditions
+    x_base = 0; y_base = 0.3; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
+    dx_base = 0; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
     z0 = [x_base; y_base; th1; th2; th3; th4; th5; dx_base; dy_base; dth1; dth2; dth3; dth4; dth5];
 
-    %% Simulation parameters
-    dt = 0.001;            % Time step (s)
-    tf = 2;                % Final time (s)
-    tspan = 0:dt:tf;
+    %% Simulation Parameters
+    dt = 0.0005; tf = 1; tspan = 0:dt:tf;
     num_steps = length(tspan);
-
-    % Preallocate state array
     z_out = zeros(14, num_steps);
     z_out(:,1) = z0;
 
-    %% Simulation loop
+    %% Simulation Loop
     for i = 1:num_steps-1
         t = tspan(i);
         z = z_out(:,i);
-
         dz = dynamics(t, z, p);
-
-        % Euler integration
         z_out(:,i+1) = z + dz * dt;
     end
+%% Compute and Plot Energy
+% Compute energy for each time step
+E = zeros(1, length(tspan));
+for i = 1:length(tspan)
+    z = z_out(:, i);  % Extract state at each time step
+    E(i) = energy_leg(z, p);  % Compute energy at this state
+end
 
-    %% Animate the robot
+% Plot the total energy over time
+figure(2); clf;
+plot(tspan, E, 'LineWidth', 2);
+xlabel('Time (s)'); ylabel('Total Energy (J)');
+title('Total Energy of the Robot Over Time');
+grid on;
+
+    %% Animate the Robot
     animate_robot(tspan, z_out, p);
-
 end
 
 function dz = dynamics(t, z, p)
-    % Extract generalized coordinates and velocities
-    q = z(1:7);     % [x_base; y_base; th1; th2; th3; th4; th5]
-    dq = z(8:14);   % [dx_base; dy_base; dth1; dth2; dth3; dth4; dth5]
+    q = z(1:7);
+    dq = z(8:14);
+    tau = zeros(4,1);  % Control torques are zero (unactuated)
 
-    % Control torques are zero (unactuated)
-    tau = zeros(4,1);  % [tau1; tau2; tau3; tau4]
+    % Define external forces on left and right feet
+    Fx1 = 0; Fy1 = 0;  % Example values for forces on left foot
+    Fx2 = 0; Fy2 = 0;  % Example values for forces on right foot
+    F_left = [Fx1; Fy1];
+    F_right = [Fx2; Fy2];
 
     % Compute mass matrix and dynamics vector
-    A = A_leg(z, p);       % Mass matrix (from updated derive_leg.m)
-    b = b_leg(z, tau, p);  % Dynamics vector (from updated derive_leg.m)
+    A = A_leg(z, p);
+    b = b_leg(z, tau, F_left, F_right, p);  % Pass external forces
 
     % Compute contact forces
-    QFc = compute_contact_forces(z, p);
+    QFc = compute_contact_forces(z, p, Fx1, Fy1, Fx2, Fy2);
 
     % Accelerations
     ddq = A \ (b + QFc);
@@ -103,109 +83,68 @@ function dz = dynamics(t, z, p)
     dz = [dq; ddq];
 end
 
-function QFc = compute_contact_forces(z, p)
-    % Initialize contact force vector
+function QFc = compute_contact_forces(z, p, Fx1, Fy1, Fx2, Fy2)
     QFc = zeros(7,1);
-
-    % Extract variables
-    x_base = z(1);
     y_base = z(2);
-    dx_base = z(8);
     dy_base = z(9);
-
-    % Positions and velocities of the left and right feet
     rE_left = position_left_foot(z, p);
     rE_right = position_right_foot(z, p);
-
     drE_left = velocity_left_foot(z, p);
     drE_right = velocity_right_foot(z, p);
 
-    % Ground level (y = 0)
     ground_level = 0;
+    Kc = 100; Dc = 50;
 
-    % Contact stiffness and damping
-    Kc = 1e5;  % Contact stiffness (N/m)
-    Dc = 1e3;  % Contact damping (N/(m/s))
-
-    % Initialize total generalized forces
-    QFc_total = zeros(7,1);
-
-    % Base contact (if base can contact the ground)
+    % Base contact
     if y_base <= ground_level
-        % Penetration depth
         delta = ground_level - y_base;
-        % Penetration rate
         delta_dot = -dy_base;
-        % Normal force
-        Fc_base = Kc * delta + Dc * delta_dot;
-        % Prevent negative force (no adhesion)
-        Fc_base = max(Fc_base, 0);
-        % Generalized force due to contact on base
+        Fc_base = max(Kc * delta + Dc * delta_dot, 0);
         QFc_base = [0; Fc_base; zeros(5,1)];
     else
         QFc_base = zeros(7,1);
     end
 
     % Left foot contact
+    J_left = jacobian_left_foot(z, p);  % Retrieve left foot Jacobian
     if rE_left(2) <= ground_level
-        % Penetration depth
         delta = ground_level - rE_left(2);
-        % Penetration rate
         delta_dot = -drE_left(2);
-        % Normal force
-        Fc_left = Kc * delta + Dc * delta_dot;
-        % Prevent negative force (no adhesion)
-        Fc_left = max(Fc_left, 0);
-        % Jacobian for left foot
-        J_left = jacobian_left_foot(z, p);  % Should be (2 x 7)
-        % Generalized forces due to contact
-        QFc_left = J_left' * [0; Fc_left];
+        Fc_left = max(Kc * delta + Dc * delta_dot, 0);
+        QFc_left = J_left' * [0; Fc_left] + J_left' * [Fx1; Fy1];
     else
-        QFc_left = zeros(7,1);
+        QFc_left = J_left' * [Fx1; Fy1];
     end
 
     % Right foot contact
+    J_right = jacobian_right_foot(z, p);  % Retrieve right foot Jacobian
     if rE_right(2) <= ground_level
-        % Penetration depth
         delta = ground_level - rE_right(2);
-        % Penetration rate
         delta_dot = -drE_right(2);
-        % Normal force
-        Fc_right = Kc * delta + Dc * delta_dot;
-        % Prevent negative force (no adhesion)
-        Fc_right = max(Fc_right, 0);
-        % Jacobian for right foot
-        J_right = jacobian_right_foot(z, p);  % Should be (2 x 7)
-        % Generalized forces due to contact
-        QFc_right = J_right' * [0; Fc_right];
+        Fc_right = max(Kc * delta + Dc * delta_dot, 0);
+        QFc_right = J_right' * [0; Fc_right] + J_right' * [Fx2; Fy2];
     else
-        QFc_right = zeros(7,1);
+        QFc_right = J_right' * [Fx2; Fy2];
     end
 
-    % Total contact forces
     QFc = QFc_base + QFc_left + QFc_right;
 end
-function animate_robot(tspan, z_out, p)
-    figure(1); clf;
-    hold on
-    xlabel('X Position (m)');
-    ylabel('Y Position (m)');
-    title('Robot Dropping Simulation');
-    axis equal
-    axis([-1 1 -0.5 1.5]);  % Adjust axes as needed
 
-    % Ground line
+
+function animate_robot(tspan, z_out, p)
+    figure(1); clf; hold on;
+    xlabel('X Position (m)'); ylabel('Y Position (m)');
+    title('Robot Dropping Simulation');
+    axis equal; axis([-1 1 -0.5 1.5]);
     plot([-5, 5], [0, 0], 'k--', 'LineWidth', 2);
 
-    % Initialize plot handles
+    % Initialize plot handles for the body, left leg, and right leg
+    h_body = plot([0, 0], [0, 0], 'k', 'LineWidth', 4);
     h_left_leg = plot([0, 0, 0, 0, 0], [0, 0, 0, 0, 0], 'b', 'LineWidth', 2);
     h_right_leg = plot([0, 0, 0, 0, 0], [0, 0, 0, 0, 0], 'r', 'LineWidth', 2);
-    h_body = plot([0, 0], [0, 0], 'k', 'LineWidth', 4);
 
     for i = 1:10:length(tspan)
         z = z_out(:, i);
-
-        % Extract base position
         x_base = z(1);
         y_base = z(2);
         r_base = [x_base; y_base];
@@ -213,57 +152,62 @@ function animate_robot(tspan, z_out, p)
         % Get keypoints for visualization
         keypoints = keypoints_leg(z, p);
 
+        % Extract key points for the left leg, right leg, and body
         % Left leg keypoints
-        rA = keypoints(:, 1);       % Left hip
-        rB = keypoints(:, 2);       % Left thigh joint
-        rC = keypoints(:, 3);       % Left knee
-        rD = keypoints(:, 4);       % Left shank joint
-        rE_left = keypoints(:, 5);  % Left foot
+        rO = keypoints(:, 11);       % Left hip (O)
+        rA = keypoints(:, 1);        % Left thigh joint (A)
+        rB = keypoints(:, 2);        % Left thigh center (B)
+        rC = keypoints(:, 3);        % Left knee joint (C)
+        rD = keypoints(:, 4);        % Left shank center (D)
+        rE_left = keypoints(:, 5);   % Left foot (E)
 
         % Right leg keypoints
-        rA_right = keypoints(:, 6);     % Right hip
-        rB_right = keypoints(:, 7);     % Right thigh joint
-        rC_right = keypoints(:, 8);     % Right knee
-        rD_right = keypoints(:, 9);     % Right shank joint
-        rE_right = keypoints(:, 9);     % Right foot (note: keypoints(:,9) is used for both rD_right and rE_right)
+        rOR = keypoints(:, 12);      % Right hip (OR)
+        rA_right = keypoints(:, 6);  % Right thigh joint (AR)
+        rB_right = keypoints(:, 7);  % Right thigh center (BR)
+        rC_right = keypoints(:, 8);  % Right knee joint (CR)
+        rD_right = keypoints(:, 9);  % Right shank center (DR)
+        rE_right = keypoints(:, 10); % Right foot (ER)
 
-        % Body endpoint
-        rM = keypoints(:, 10);      % Body endpoint for visualization
+        % Define body linkage (from left hip to right hip)
+        set(h_body, 'XData', [rO(1), rOR(1)], 'YData', [rO(2), rOR(2)]);
 
-        % Left leg points to plot
-        left_leg_x = [r_base(1), rA(1), rC(1), rE_left(1)];
-        left_leg_y = [r_base(2), rA(2), rC(2), rE_left(2)];
+        % Define left leg linkage coordinates
+        left_leg_x = [rO(1), rA(1), rC(1), rE_left(1)];
+        left_leg_y = [rO(2), rA(2), rC(2), rE_left(2)];
+        left_leg_x2 = [rO(1), rB(1), rD(1), rE_left(1)];
+        left_leg_y2 = [rO(2), rB(2), rD(2), rE_left(2)];
 
-        % Left leg secondary linkage (if applicable)
-        left_leg_x2 = [r_base(1), rB(1), rD(1), rE_left(1)];
-        left_leg_y2 = [r_base(2), rB(2), rD(2), rE_left(2)];
-
-        % Right leg points to plot
-        right_leg_x = [r_base(1), rA_right(1), rC_right(1), rE_right(1)];
-        right_leg_y = [r_base(2), rA_right(2), rC_right(2), rE_right(2)];
-
-        % Right leg secondary linkage (if applicable)
-        right_leg_x2 = [r_base(1), rB_right(1), rD_right(1), rE_right(1)];
-        right_leg_y2 = [r_base(2), rB_right(2), rD_right(2), rE_right(2)];
+        % Define right leg linkage coordinates
+        right_leg_x = [rOR(1), rA_right(1), rC_right(1), rE_right(1)];
+        right_leg_y = [rOR(2), rA_right(2), rC_right(2), rE_right(2)];
+        right_leg_x2 = [rOR(1), rB_right(1), rD_right(1), rE_right(1)];
+        right_leg_y2 = [rOR(2), rB_right(2), rD_right(2), rE_right(2)];
 
         % Update left leg plot (primary linkage)
         set(h_left_leg, 'XData', left_leg_x, 'YData', left_leg_y);
 
         % Update left leg plot (secondary linkage)
-        % For visual clarity, we can plot the secondary linkage with a different line style
         h_left_leg2 = plot(left_leg_x2, left_leg_y2, 'b--', 'LineWidth', 1);
 
         % Update right leg plot (primary linkage)
         set(h_right_leg, 'XData', right_leg_x, 'YData', right_leg_y);
 
         % Update right leg plot (secondary linkage)
-        % For visual clarity, we can plot the secondary linkage with a different line style
         h_right_leg2 = plot(right_leg_x2, right_leg_y2, 'r--', 'LineWidth', 1);
 
-        % Update body plot
-        set(h_body, 'XData', [r_base(1), rM(1)], 'YData', [r_base(2), rM(2)]);
+        % Plot markers for each keypoint (for debugging and visualization)
+        plot(rO(1), rO(2), 'ro');         % Left hip joint (O)
+        plot(rA(1), rA(2), 'go');         % Left thigh joint (A)
+        plot(rC(1), rC(2), 'co');         % Left knee joint (C)
+        plot(rE_left(1), rE_left(2), 'bo'); % Left foot endpoint (E)
+        
+        plot(rOR(1), rOR(2), 'rx');       % Right hip joint (OR)
+        plot(rA_right(1), rA_right(2), 'gx'); % Right thigh joint (AR)
+        plot(rC_right(1), rC_right(2), 'bx'); % Right knee joint (CR)
+        plot(rE_right(1), rE_right(2), 'kx'); % Right foot endpoint (ER)
 
-        drawnow
+        drawnow;
 
         % Delete secondary linkage plots to avoid accumulation
         delete(h_left_leg2);
@@ -272,3 +216,4 @@ function animate_robot(tspan, z_out, p)
         pause(0.01);
     end
 end
+
