@@ -15,14 +15,14 @@ function simulate_robot()
     l_B_m_body = l_body / 2;
 
     % Motor and gravity parameters
-    N = 18.75; Ir = 0.0035 / N^2; g = 0;
+    N = 18.75; Ir = 0.0035 / N^2; g = 9.8;
 
     % Updated parameter vector to match all defined parameters in derive_robot.m
     p = [m1 m2 m3 m4 m5 m6 m7 m8 m_body I1 I2 I3 I4 I5 I6 I7 I8 I_body Ir N ...
          l_O_m1 l_B_m2 l_A_m3 l_C_m4 l_B_m_body l_OA l_OB l_AC l_DE l_body g]';
 
     %% Initial Conditions
-    x_base = 0; y_base = 1; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
+    x_base = 0; y_base = .15; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
     dx_base = 0; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
     initial_angles = [th1; th2; th3; th4];
 
@@ -174,7 +174,7 @@ function tau = control_law(t, z, p)
     dth4 = z(13); % Right knee joint velocity
 
     % Elliptical trajectory parameters in joint space
-    omega = 10;                % Angular frequency
+    omega = -10;                % Angular frequency
     hip_amp = pi / 16;         % Amplitude of hip oscillation (controls side-to-side range)
     knee_amp = pi / 24;       % Amplitude of knee oscillation (controls up-down range)
     phase_offset = pi;        % Phase offset for the right leg
