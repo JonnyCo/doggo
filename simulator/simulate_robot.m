@@ -27,7 +27,7 @@ function simulate_robot()
     initial_angles = [th1; th2; th3; th4];
 
     %% Simulation Parameters
-    dt = 0.001; tf = 3; tspan = 0:dt:tf;
+    dt = 0.001; tf = 5; tspan = 0:dt:tf;
     num_steps = length(tspan);
     z_out = zeros(14, num_steps);
     z_out(:,1) = [x_base; y_base; th1; th2; th3; th4; th5; dx_base; dy_base; dth1; dth2; dth3; dth4; dth5];
@@ -174,9 +174,9 @@ function tau = control_law(t, z, p)
     dth4 = z(13); % Right knee joint velocity
 
     % Elliptical trajectory parameters in joint space
-    omega = -10;                % Angular frequency
-    hip_amp = pi / 16;         % Amplitude of hip oscillation (controls side-to-side range)
-    knee_amp = pi / 24;       % Amplitude of knee oscillation (controls up-down range)
+    omega = -15;                % Angular frequency
+    hip_amp = pi / 8;         % Amplitude of hip oscillation (controls side-to-side range)
+    knee_amp = pi / 12;       % Amplitude of knee oscillation (controls up-down range)
     phase_offset = pi;        % Phase offset for the right leg
 
     % Desired joint angles for elliptical path
@@ -200,27 +200,20 @@ function tau = control_law(t, z, p)
     % Combine torques into a single vector
     tau = [tau1; tau2; tau3; tau4];
 end
-
-
-
-
 function animate_robot(tspan, z_out, p)
     figure(1); clf; hold on;
     xlabel('X Position (m)'); ylabel('Y Position (m)');
-    title('Robot Dropping Simulation');
+    title('Robot Animation');
     axis equal; axis([-1 1 -0.5 1.5]);
     plot([-5, 5], [0, 0], 'k--', 'LineWidth', 2);
 
     % Initialize plot handles for the body, left leg, and right leg
     h_body = plot([0, 0], [0, 0], 'k', 'LineWidth', 4);
-    h_left_leg = plot([0, 0, 0, 0, 0], [0, 0, 0, 0, 0], 'b', 'LineWidth', 2);
-    h_right_leg = plot([0, 0, 0, 0, 0], [0, 0, 0, 0, 0], 'r', 'LineWidth', 2);
+    h_left_leg = plot([0, 0, 0, 0], [0, 0, 0, 0], 'b', 'LineWidth', 2);
+    h_right_leg = plot([0, 0, 0, 0], [0, 0, 0, 0], 'r', 'LineWidth', 2);
 
     for i = 1:10:length(tspan)
         z = z_out(:, i);
-        x_base = z(1);
-        y_base = z(2);
-        r_base = [x_base; y_base];
 
         % Get keypoints for visualization
         keypoints = keypoints_leg(z, p);
@@ -229,17 +222,13 @@ function animate_robot(tspan, z_out, p)
         % Left leg keypoints
         rO = keypoints(:, 11);       % Left hip (O)
         rA = keypoints(:, 1);        % Left thigh joint (A)
-        rB = keypoints(:, 2);        % Left thigh center (B)
         rC = keypoints(:, 3);        % Left knee joint (C)
-        rD = keypoints(:, 4);        % Left shank center (D)
         rE_left = keypoints(:, 5);   % Left foot (E)
 
         % Right leg keypoints
         rOR = keypoints(:, 12);      % Right hip (OR)
         rA_right = keypoints(:, 6);  % Right thigh joint (AR)
-        rB_right = keypoints(:, 7);  % Right thigh center (BR)
         rC_right = keypoints(:, 8);  % Right knee joint (CR)
-        rD_right = keypoints(:, 9);  % Right shank center (DR)
         rE_right = keypoints(:, 10); % Right foot (ER)
 
         % Define body linkage (from left hip to right hip)
@@ -248,45 +237,24 @@ function animate_robot(tspan, z_out, p)
         % Define left leg linkage coordinates
         left_leg_x = [rO(1), rA(1), rC(1), rE_left(1)];
         left_leg_y = [rO(2), rA(2), rC(2), rE_left(2)];
-        left_leg_x2 = [rO(1), rB(1), rD(1), rE_left(1)];
-        left_leg_y2 = [rO(2), rB(2), rD(2), rE_left(2)];
-
+        
         % Define right leg linkage coordinates
         right_leg_x = [rOR(1), rA_right(1), rC_right(1), rE_right(1)];
         right_leg_y = [rOR(2), rA_right(2), rC_right(2), rE_right(2)];
-        right_leg_x2 = [rOR(1), rB_right(1), rD_right(1), rE_right(1)];
-        right_leg_y2 = [rOR(2), rB_right(2), rD_right(2), rE_right(2)];
 
-        % Update left leg plot (primary linkage)
+        % Update left leg plot
         set(h_left_leg, 'XData', left_leg_x, 'YData', left_leg_y);
 
-        % Update left leg plot (secondary linkage)
-        h_left_leg2 = plot(left_leg_x2, left_leg_y2, 'b--', 'LineWidth', 1);
-
-        % Update right leg plot (primary linkage)
+        % Update right leg plot
         set(h_right_leg, 'XData', right_leg_x, 'YData', right_leg_y);
-
-        % Update right leg plot (secondary linkage)
-        h_right_leg2 = plot(right_leg_x2, right_leg_y2, 'r--', 'LineWidth', 1);
-
-        % Plot markers for each keypoint (for debugging and visualization)
-        %plot(rO(1), rO(2), 'ro');         % Left hip joint (O)
-        %plot(rA(1), rA(2), 'go');         % Left thigh joint (A)
-        %plot(rC(1), rC(2), 'co');         % Left knee joint (C)
-        %plot(rE_left(1), rE_left(2), 'bo'); % Left foot endpoint (E)
-        
-        %plot(rOR(1), rOR(2), 'rx');       % Right hip joint (OR)
-        %plot(rA_right(1), rA_right(2), 'gx'); % Right thigh joint (AR)
-        %plot(rC_right(1), rC_right(2), 'bx'); % Right knee joint (CR)
-        %plot(rE_right(1), rE_right(2), 'kx'); % Right foot endpoint (ER)
 
         drawnow;
 
-        % Delete secondary linkage plots to avoid accumulation
-        %delete(h_left_leg2);
-        %delete(h_right_leg2);
-
+        % Pause for a moment
         pause(0.01);
     end
 end
+
+
+
 
