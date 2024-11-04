@@ -15,16 +15,17 @@ function simulate_robot()
     l_B_m_body = l_body / 2;
 
     % Motor and gravity parameters
-    N = 18.75; Ir = 0.0035 / N^2; g = 9.8;
+    N = 18.75; Ir = 0.0035 / N^2; g = 0;
 
     % Updated parameter vector to match all defined parameters in derive_robot.m
     p = [m1 m2 m3 m4 m5 m6 m7 m8 m_body I1 I2 I3 I4 I5 I6 I7 I8 I_body Ir N ...
          l_O_m1 l_B_m2 l_A_m3 l_C_m4 l_B_m_body l_OA l_OB l_AC l_DE l_body g]';
 
     %% Initial Conditions
-    x_base = 0; y_base = 2; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = -pi/4;
-    dx_base = 1; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
+    x_base = 0; y_base = 1; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
+    dx_base = 0; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
     initial_angles = [th1; th2; th3; th4];
+
     %% Simulation Parameters
     dt = 0.001; tf = 3; tspan = 0:dt:tf;
     num_steps = length(tspan);
@@ -34,9 +35,9 @@ function simulate_robot()
     for i = 1:num_steps-1
         % Calculate control torques for both legs
         t = tspan(i);
-        %tau = control_law(t, z_out(:,i), p, p_traj_left, p_traj_right);
+        tau = control_law(t, z_out(:,i), p);
         %tau = [0;0;0;0];
-        tau = control_law(t, z_out(:,i), p, initial_angles);
+        %tau = control_law(t, z_out(:,i), p, initial_angles);
         % Compute dynamics
         dz = dynamics(t, z_out(:, i), p, tau);
         
@@ -108,7 +109,7 @@ function [Fc_left, Fc_right] = contact_forces(z, p)
 
     % Parameters for ground contact
     ground_level = 0;
-    Kc = 100;  % Spring constant for contact
+    Kc = 1000;  % Spring constant for contact
     Dc = 20;    % Damping coefficient for contact
     mu = 1;   % Friction coefficient
 
@@ -130,7 +131,7 @@ function [Fc_left, Fc_right] = contact_forces(z, p)
         else                     % Static friction condition (no sliding)
             Fx_right = -min(mu * Fy_right, abs(Kc * Vx_right)) * sign(Vx_right);
         end
-        Fx_right = 0;
+        %Fx_right = 0;
 
         % Combine into total contact force for right foot
         Fc_right = [Fx_right; Fy_right];
@@ -150,50 +151,58 @@ function [Fc_left, Fc_right] = contact_forces(z, p)
         else                     % Static friction condition (no sliding)
             Fx_left = -min(mu * Fy_left, abs(Kc * Vx_left)) * sign(Vx_left);
         end
-        Fx_left = 0;
+        %Fx_left = 0;
 
         % Combine into total contact force for left foot
         Fc_left = [Fx_left; Fy_left];
     end
 end
+function tau = control_law(t, z, p)
+    % Define torsional spring and damper parameters
+    K_torsional = 3;    % Torsional spring constant
+    D_torsional = 0.1;  % Damping constant
+    max_torque = 2;     % Max torque limit
 
-function tau = control_law(t, z, p, initial_angles)
-    % Define passive torsional spring and damper parameters
-    K_torsional = 10;  % Torsional spring constant
-    D_torsional = .1;    % Damping constant
-    max_torque = 20;   % Max torque limit to prevent instability
+    % Extract joint angles and velocities
+    th1 = z(3);   % Left hip joint
+    th2 = z(4);   % Left knee joint
+    th3 = z(5);   % Right hip joint
+    th4 = z(6);   % Right knee joint
+    dth1 = z(10); % Left hip joint velocity
+    dth2 = z(11); % Left knee joint velocity
+    dth3 = z(12); % Right hip joint velocity
+    dth4 = z(13); % Right knee joint velocity
 
-    % Extract joint angles and angular velocities
-    th1 = z(3);  % Left hip joint
-    th2 = z(4);  % Left knee joint
-    th3 = z(5);  % Right hip joint
-    th4 = z(6);  % Right knee joint
-    dth1 = z(10);  % Left hip joint velocity
-    dth2 = z(11);  % Left knee joint velocity
-    dth3 = z(12);  % Right hip joint velocity
-    dth4 = z(13);  % Right knee joint velocity
+    % Elliptical trajectory parameters in joint space
+    omega = 10;                % Angular frequency
+    hip_amp = pi / 16;         % Amplitude of hip oscillation (controls side-to-side range)
+    knee_amp = pi / 24;       % Amplitude of knee oscillation (controls up-down range)
+    phase_offset = pi;        % Phase offset for the right leg
 
-    % Reference (initial) angles from the initial state
-    th1_ref = initial_angles(1);
-    th2_ref = initial_angles(2);
-    th3_ref = initial_angles(3);
-    th4_ref = initial_angles(4);
+    % Desired joint angles for elliptical path
+    th1_des = -pi/4 + hip_amp * cos(omega * t);             % Left hip follows a cosine wave around initial angle
+    th2_des = pi/2 + knee_amp * sin(omega * t);             % Left knee follows a sine wave around initial angle
+    th3_des = -pi/4 + hip_amp * cos(omega * t + phase_offset); % Right hip, 180 degrees out of phase
+    th4_des = pi/2 + knee_amp * sin(omega * t + phase_offset); % Right knee, 180 degrees out of phase
 
-    % Passive torques for each joint (torsional spring-damper system around initial positions)
-    tau1 = -K_torsional * (th1 - th1_ref) - D_torsional * dth1;  % Left hip
-    tau2 = -K_torsional * (th2 - th2_ref) - D_torsional * dth2;  % Left knee
-    tau3 = -K_torsional * (th3 - th3_ref) - D_torsional * dth3;  % Right hip
-    tau4 = -K_torsional * (th4 - th4_ref) - D_torsional * dth4;  % Right knee
+    % Virtual torsional spring-damper torques for each joint
+    tau1 = -K_torsional * (th1 - th1_des) - D_torsional * dth1;  % Left hip
+    tau2 = -K_torsional * (th2 - th2_des) - D_torsional * dth2;  % Left knee
+    tau3 = -K_torsional * (th3 - th3_des) - D_torsional * dth3;  % Right hip
+    tau4 = -K_torsional * (th4 - th4_des) - D_torsional * dth4;  % Right knee
 
-    % Clamp torques to avoid unrealistic values
+    % Clamp torques to prevent excessive values
     tau1 = max(-max_torque, min(tau1, max_torque));
     tau2 = max(-max_torque, min(tau2, max_torque));
     tau3 = max(-max_torque, min(tau3, max_torque));
     tau4 = max(-max_torque, min(tau4, max_torque));
 
     % Combine torques into a single vector
-    tau = [tau1; tau2; tau3; tau4]
+    tau = [tau1; tau2; tau3; tau4];
 end
+
+
+
 
 function animate_robot(tspan, z_out, p)
     figure(1); clf; hold on;
