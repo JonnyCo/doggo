@@ -22,11 +22,11 @@ function simulate_robot()
          l_O_m1 l_B_m2 l_A_m3 l_C_m4 l_B_m_body l_OA l_OB l_AC l_DE l_body g]';
 
     %% Initial Conditions
-    x_base = 0; y_base = .5; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
-    dx_base = 0; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
+    x_base = 0; y_base = 2; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = -pi/4;
+    dx_base = 1; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
     initial_angles = [th1; th2; th3; th4];
     %% Simulation Parameters
-    dt = 0.001; tf = 1; tspan = 0:dt:tf;
+    dt = 0.001; tf = 3; tspan = 0:dt:tf;
     num_steps = length(tspan);
     z_out = zeros(14, num_steps);
     z_out(:,1) = [x_base; y_base; th1; th2; th3; th4; th5; dx_base; dy_base; dth1; dth2; dth3; dth4; dth5];
@@ -159,9 +159,9 @@ end
 
 function tau = control_law(t, z, p, initial_angles)
     % Define passive torsional spring and damper parameters
-    K_torsional = 1;  % Torsional spring constant
+    K_torsional = 10;  % Torsional spring constant
     D_torsional = .1;    % Damping constant
-    max_torque = 1;   % Max torque limit to prevent instability
+    max_torque = 20;   % Max torque limit to prevent instability
 
     % Extract joint angles and angular velocities
     th1 = z(3);  % Left hip joint
@@ -261,15 +261,15 @@ function animate_robot(tspan, z_out, p)
         h_right_leg2 = plot(right_leg_x2, right_leg_y2, 'r--', 'LineWidth', 1);
 
         % Plot markers for each keypoint (for debugging and visualization)
-        plot(rO(1), rO(2), 'ro');         % Left hip joint (O)
-        plot(rA(1), rA(2), 'go');         % Left thigh joint (A)
-        plot(rC(1), rC(2), 'co');         % Left knee joint (C)
-        plot(rE_left(1), rE_left(2), 'bo'); % Left foot endpoint (E)
+        %plot(rO(1), rO(2), 'ro');         % Left hip joint (O)
+        %plot(rA(1), rA(2), 'go');         % Left thigh joint (A)
+        %plot(rC(1), rC(2), 'co');         % Left knee joint (C)
+        %plot(rE_left(1), rE_left(2), 'bo'); % Left foot endpoint (E)
         
-        plot(rOR(1), rOR(2), 'rx');       % Right hip joint (OR)
-        plot(rA_right(1), rA_right(2), 'gx'); % Right thigh joint (AR)
-        plot(rC_right(1), rC_right(2), 'bx'); % Right knee joint (CR)
-        plot(rE_right(1), rE_right(2), 'kx'); % Right foot endpoint (ER)
+        %plot(rOR(1), rOR(2), 'rx');       % Right hip joint (OR)
+        %plot(rA_right(1), rA_right(2), 'gx'); % Right thigh joint (AR)
+        %plot(rC_right(1), rC_right(2), 'bx'); % Right knee joint (CR)
+        %plot(rE_right(1), rE_right(2), 'kx'); % Right foot endpoint (ER)
 
         drawnow;
 
