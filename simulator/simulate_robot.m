@@ -4,7 +4,7 @@ function simulate_robot()
     % Masses and Inertias for left leg, right leg, and body
     m1 = 0.2393; m2 = 0.0368; m3 = 0.00783; m4 = 0.0155; 
     m5 = 0.2393; m6 = 0.0368; m7 = 0.00783; m8 = 0.0155; % Right leg (same as left leg)
-    m_body = 0.1;
+    m_body = 0.01;
     I1 = 25.1e-6; I2 = 53.5e-6; I3 = 9.25e-6; I4 = 22.176e-6; 
     I5 = 25.1e-6; I6 = 53.5e-6; I7 = 9.25e-6; I8 = 22.176e-6; % Right leg
     I_body = 25.1e-6;
@@ -15,33 +15,44 @@ function simulate_robot()
     l_B_m_body = l_body / 2;
 
     % Motor and gravity parameters
-    N = 18.75; Ir = 0.0035 / N^2; g = 9.8;
+    N = 18.75; Ir = 0.0035 / N^2; g = 3;
 
     % Updated parameter vector to match all defined parameters in derive_robot.m
     p = [m1 m2 m3 m4 m5 m6 m7 m8 m_body I1 I2 I3 I4 I5 I6 I7 I8 I_body Ir N ...
          l_O_m1 l_B_m2 l_A_m3 l_C_m4 l_B_m_body l_OA l_OB l_AC l_DE l_body g]';
 
+        %% Set Trajectory Control Parameters (operational space control for legs)
+    p_traj.omega = 3;
+    p_traj.x_0 = 0;
+    p_traj.y_0 = -.125;
+    p_traj.r = 0.025;
+
     %% Initial Conditions
-    x_base = 0; y_base = 0.3; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
+    x_base = 0; y_base = .5; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
     dx_base = 0; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
     z0 = [x_base; y_base; th1; th2; th3; th4; th5; dx_base; dy_base; dth1; dth2; dth3; dth4; dth5];
 
     %% Simulation Parameters
-    dt = 0.0005; tf = 1; tspan = 0:dt:tf;
+    dt = 0.001; tf = 1; tspan = 0:dt:tf;
     num_steps = length(tspan);
     z_out = zeros(14, num_steps);
     z_out(:,1) = z0;
 
-    %% Simulation Loop
-    for i = 1:num_steps-1
-        t = tspan(i);
-        z = z_out(:,i);
-        dz = dynamics(t, z, p);
-        z_out(:,i+1) = z + dz * dt;
-    end
+%% Dynamic Simulation Loop
+% Simulation Loop
+%% Dynamic Simulation Loop
+for i = 1:num_steps-1
+    % Calculate dynamics for this timestep
+    t = tspan(i);
+    z = z_out(:, i);
+    dz = dynamics(t, z, p);
+    % Update state (positions and velocities)
+    z_out(:, i+1) = z + dz * dt;
+end
+
 %% Compute and Plot Energy
 % Compute energy for each time step
-E = zeros(1, length(tspan));
+    E = zeros(1, length(tspan));
 for i = 1:length(tspan)
     z = z_out(:, i);  % Extract state at each time step
     E(i) = energy_leg(z, p);  % Compute energy at this state
@@ -92,24 +103,23 @@ function QFc = compute_contact_forces(z, p, Fx1, Fy1, Fx2, Fy2)
     drE_left = velocity_left_foot(z, p);
     drE_right = velocity_right_foot(z, p);
 
+    % Parameters for ground contact
     ground_level = 0;
-    Kc = 100; Dc = 50;
-
-    % Base contact
-    if y_base <= ground_level
-        delta = ground_level - y_base;
-        delta_dot = -dy_base;
-        Fc_base = max(Kc * delta + Dc * delta_dot, 0);
-        QFc_base = [0; Fc_base; zeros(5,1)];
-    else
-        QFc_base = zeros(7,1);
-    end
+    Kc = 100;  % Spring constant for contact
+    Dc = 50;   % Damping coefficient for contact
+    restitution_coef = 0;  % Coefficient of restitution (0-1)
 
     % Left foot contact
     J_left = jacobian_left_foot(z, p);  % Retrieve left foot Jacobian
     if rE_left(2) <= ground_level
         delta = ground_level - rE_left(2);
         delta_dot = -drE_left(2);
+
+        % Apply restitution to vertical velocity on impact
+        if delta_dot > 0  % Only apply restitution when moving downward
+            delta_dot = delta_dot * restitution_coef;
+        end
+
         Fc_left = max(Kc * delta + Dc * delta_dot, 0);
         QFc_left = J_left' * [0; Fc_left] + J_left' * [Fx1; Fy1];
     else
@@ -121,15 +131,21 @@ function QFc = compute_contact_forces(z, p, Fx1, Fy1, Fx2, Fy2)
     if rE_right(2) <= ground_level
         delta = ground_level - rE_right(2);
         delta_dot = -drE_right(2);
+
+        % Apply restitution to vertical velocity on impact
+        if delta_dot > 0  % Only apply restitution when moving downward
+            delta_dot = delta_dot * restitution_coef;
+        end
+
         Fc_right = max(Kc * delta + Dc * delta_dot, 0);
         QFc_right = J_right' * [0; Fc_right] + J_right' * [Fx2; Fy2];
     else
         QFc_right = J_right' * [Fx2; Fy2];
     end
 
-    QFc = QFc_base + QFc_left + QFc_right;
+    % Combine contact forces
+    QFc = QFc_left + QFc_right;
 end
-
 
 function animate_robot(tspan, z_out, p)
     figure(1); clf; hold on;
