@@ -10,7 +10,7 @@ function simulate_robot()
     I_body = 25.1e-6;
     
     % Link lengths and distances from joints to centers of mass
-    l_OA = 0.011; l_OB = 0.042; l_AC = 0.096; l_DE = 0.091; l_body = 0.5;
+    l_OA = 0.011; l_OB = 0.042; l_AC = 0.096; l_DE = 0.091; l_body = 0.25;
     l_O_m1 = 0.032; l_B_m2 = 0.0344; l_A_m3 = 0.0622; l_C_m4 = 0.0610;
     l_B_m_body = l_body / 2;
 
@@ -22,12 +22,12 @@ function simulate_robot()
          l_O_m1 l_B_m2 l_A_m3 l_C_m4 l_B_m_body l_OA l_OB l_AC l_DE l_body g]';
 
     %% Initial Conditions
-    x_base = 0; y_base = .15; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
-    dx_base = 0; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
+    x_base = 3; y_base = .15; th1 = -pi/4; th2 = pi/2; th3 = -pi/4; th4 = pi/2; th5 = 0;
+    dx_base = -.02; dy_base = 0; dth1 = 0; dth2 = 0; dth3 = 0; dth4 = 0; dth5 = 0;
     initial_angles = [th1; th2; th3; th4];
 
     %% Simulation Parameters
-    dt = 0.001; tf = 5; tspan = 0:dt:tf;
+    dt = 0.001; tf = 10; tspan = 0:dt:tf;
     num_steps = length(tspan);
     z_out = zeros(14, num_steps);
     z_out(:,1) = [x_base; y_base; th1; th2; th3; th4; th5; dx_base; dy_base; dth1; dth2; dth3; dth4; dth5];
@@ -96,7 +96,6 @@ function dz = dynamics(t, z, p, tau)
     dz = [dq; ddq];
 end
 
-
 function [Fc_left, Fc_right] = contact_forces(z, p)
     % This function computes both horizontal and vertical contact forces for the left and right feet.
     % Fc_left and Fc_right are now vectors with both horizontal (x) and vertical (y) components.
@@ -111,7 +110,7 @@ function [Fc_left, Fc_right] = contact_forces(z, p)
     ground_level = 0;
     Kc = 1000;  % Spring constant for contact
     Dc = 20;    % Damping coefficient for contact
-    mu = 1;   % Friction coefficient
+    mu = 1.5;   % Friction coefficient
 
     % Initialize contact forces (horizontal and vertical components)
     Fc_left = [0; 0];
@@ -159,9 +158,9 @@ function [Fc_left, Fc_right] = contact_forces(z, p)
 end
 function tau = control_law(t, z, p)
     % Define torsional spring and damper parameters
-    K_torsional = 3;    % Torsional spring constant
-    D_torsional = 0.1;  % Damping constant
-    max_torque = 2;     % Max torque limit
+    K_torsional = 4;    % Torsional spring constant
+    D_torsional = 0.2;  % Damping constant
+    max_torque = 5;     % Max torque limit
 
     % Extract joint angles and velocities
     th1 = z(3);   % Left hip joint
@@ -174,16 +173,17 @@ function tau = control_law(t, z, p)
     dth4 = z(13); % Right knee joint velocity
 
     % Elliptical trajectory parameters in joint space
-    omega = -15;                % Angular frequency
-    hip_amp = pi / 8;         % Amplitude of hip oscillation (controls side-to-side range)
-    knee_amp = pi / 12;       % Amplitude of knee oscillation (controls up-down range)
+    omega_h = 15;                % Angular frequency  for hip % -15
+    omega_k = 15;                 % Ang freq for knee
+    hip_amp = pi / 8;         % Amplitude of hip oscillation (controls side-to-side range) pi / 8;
+    knee_amp = pi / 12 ;       % Amplitude of knee oscillation (controls up-down range) pi / 12;
     phase_offset = pi;        % Phase offset for the right leg
 
     % Desired joint angles for elliptical path
-    th1_des = -pi/4 + hip_amp * cos(omega * t);             % Left hip follows a cosine wave around initial angle
-    th2_des = pi/2 + knee_amp * sin(omega * t);             % Left knee follows a sine wave around initial angle
-    th3_des = -pi/4 + hip_amp * cos(omega * t + phase_offset); % Right hip, 180 degrees out of phase
-    th4_des = pi/2 + knee_amp * sin(omega * t + phase_offset); % Right knee, 180 degrees out of phase
+    th1_des = -pi/4 + hip_amp * cos(omega_h * t);             % Left hip follows a cosine wave around initial angle
+    th2_des = pi/2 + knee_amp * sin(omega_k * t);             % Left knee follows a sine wave around initial angle
+    th3_des = -pi/4 + hip_amp * cos(omega_h * t + phase_offset); % Right hip, 180 degrees out of phase
+    th4_des = pi/2 + knee_amp * sin(omega_k * t + phase_offset); % Right knee, 180 degrees out of phase
 
     % Virtual torsional spring-damper torques for each joint
     tau1 = -K_torsional * (th1 - th1_des) - D_torsional * dth1;  % Left hip
@@ -204,7 +204,7 @@ function animate_robot(tspan, z_out, p)
     figure(1); clf; hold on;
     xlabel('X Position (m)'); ylabel('Y Position (m)');
     title('Robot Animation');
-    axis equal; axis([-1 1 -0.5 1.5]);
+    axis equal; axis([-3.5 3.5 -0.5 1.5]);
     plot([-5, 5], [0, 0], 'k--', 'LineWidth', 2);
 
     % Initialize plot handles for the body, left leg, and right leg
@@ -254,7 +254,3 @@ function animate_robot(tspan, z_out, p)
         pause(0.01);
     end
 end
-
-
-
-
