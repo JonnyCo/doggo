@@ -1,6 +1,8 @@
 clear
 name = 'leg';
 
+% test 3
+
 % Define variables for time, generalized coordinates + derivatives, controls, and parameters 
 syms t x_base y_base th1 th2 th3 th4 th5 dx_base dy_base dth1 dth2 dth3 dth4 dth5 ...
      ddx_base ddy_base ddth1 ddth2 ddth3 ddth4 ddth5 real
