@@ -49,19 +49,14 @@ khat = cross(ihat, jhat);  % Points out of the plane (z-axis), for moments
 % Define unit vectors along the directions defined by each joint angle
 % The joint angles th1, th2, etc., are applied to each link in sequence from the base.
 
-% Left leg
+% Left leg. okay i hate that i subtracted pi/2 just to make the legs in the
+% right direction...solve later
 % Position vectors for points on the left leg relative to the left hip (O)
-%e1hat = cos(th1 + th5) * ihat + sin(th1 + th5) * jhat;   % Rotate by th1 + th5 % o to A
-%e2hat = cos(th1 + th2 + th5) * ihat + sin(th1 + th2 + th5) * jhat; % Rotate by th1 + th2 + th5 % a to c
 
-%e3hat = cos(th3 + th5) * ihat + sin(th3 + th5) * jhat;  % Rotate by th3 + th5 % Right hip (from OR to AR)
-%e4hat = cos(th3 + th4 + th5) * ihat + sin(th3 + th4 + th5) * jhat; % Rotate by th3 + th4 + th5 % Right knee (from AR to CR)
 e1hat = cos(th1 + th5 - pi/2) * ihat + sin(th1 + th5 - pi/2) * jhat;
 e2hat = cos(th1 + th2 + th5 - pi/2) * ihat + sin(th1 + th2 + th5 - pi/2) * jhat;
 e3hat = cos(th3 + th5 - pi/2) * ihat + sin(th3 + th5 - pi/2) * jhat;
 e4hat = cos(th3 + th4 + th5 - pi/2) * ihat + sin(th3 + th4 + th5 - pi/2) * jhat;
-%e5hat = cos(th5 - pi/2) * ihat + sin(th5 - pi/2) * jhat;
-
 % Body orientation
 e5hat = cos(th5) * ihat + sin(th5) * jhat;               % Body link from O to OR
 
