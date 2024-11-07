@@ -1,3 +1,5 @@
+%copy from here
+
 % Define parameters
 omega = 10;              % Angular frequency for both hip and knee (rad/s)
 hip_amp = pi / 8;       % Amplitude of hip oscillation
@@ -19,6 +21,10 @@ q4_des = pi/2 + knee_amp * sin(omega * t + phase_offset); % Right knee
 
 % Combine results into pts_foot matrix (for one period)
 pts_foot = [q1_des; q2_des; q3_des; q4_des; t];
+
+%to HERE!
+
+%the rest is just to debug the points.
 
 % Display total trajectory time
 total_trajectory_time = t(end) - t(1);
