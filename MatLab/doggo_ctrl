@@ -16,10 +16,13 @@ const_point = [-0.05; -0.165]; %[x;y] or [q1,q2] constant coordinate (x,q1,q2 co
 pts_foot = generate_elliptical_trajectory(omega, hip_amp, knee_amp, phase_offset, num_points);
 
 % Initial leg angles for encoder resets (negative of q1,q2 in lab handout due to direction motors are mounted)
-angle1_init = 0;
+
+%we need to adjust these to the right starting config
+
+angle1_init = -pi/4;
 angle2_init = -pi/2; 
 
-angle3_init = 0;
+angle3_init = -pi/4;
 angle4_init = -pi/2; 
 
 % Total experiment time is buffer,trajectory,buffer
@@ -39,8 +42,8 @@ gains.D_1 = 15.0;
 gains.D_2 = 15.0;
 
 
-gains.D_3 = 20.0;
-gains.D_4 = 20.0;
+gains.D_3 = 15.0;
+gains.D_4 = 15.0;
 
 
 % Maximum duty cycle commanded by controller (should always be <=1.0)
@@ -94,6 +97,8 @@ yB = output_data(:,30);
 
 xdesB = -output_data(:,33);
 ydesB = output_data(:,34);
+
+%need to update plots here to be in joint space
 
 %% Plot foot vs desired
 figure(3); clf;
