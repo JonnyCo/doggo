@@ -61,8 +61,15 @@ function pts_foot = generate_elliptical_trajectory(omega, hip_amp, knee_amp, pha
     q3_des = -pi/4 + hip_amp * cos(omega * t + phase_offset); % Right hip
     q4_des = pi/2 + knee_amp * sin(omega * t + phase_offset); % Right knee
 
+    % Compute joint velocities (time derivatives of the joint angles)
+    dq1_des = -hip_amp * omega * sin(omega * t);            % Left hip velocity
+    dq2_des = knee_amp * omega * cos(omega * t);            % Left knee velocity
+    dq3_des = -hip_amp * omega * sin(omega * t + phase_offset); % Right hip velocity
+    dq4_des = knee_amp * omega * cos(omega * t + phase_offset); % Right knee velocity
+
     % Combine results into pts_foot matrix (for one period)
-    pts_foot = [q1_des; q2_des; q3_des; q4_des; t];
+    % Row structure: [q1, q2, q3, q4, dq1, dq2, dq3, dq4, t]
+    pts_foot = [q1_des; q2_des; q3_des; q4_des; dq1_des; dq2_des; dq3_des; dq4_des; t];
 
     % Display total trajectory time
     total_trajectory_time = t(end) - t(1);
