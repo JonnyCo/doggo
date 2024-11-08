@@ -5,8 +5,8 @@
 #include "QEI.h"
 #include "MotorShield.h" 
 
-#define NUM_INPUTS 11  // Adjusted for joint inputs (initial angles, desired torques)
-#define NUM_OUTPUTS 17  // Adjusted for comprehensive output data
+#define NUM_INPUTS 13  // Adjusted to include cycles
+#define NUM_OUTPUTS 21 // Adjusted output data for joint state and control parameters
 #define PULSE_TO_RAD (2.0f * 3.14159f / 1200.0f)
 
 // Initializations
@@ -29,6 +29,7 @@ float angle1, angle2, angle3, angle4;
 float velocity1, velocity2, velocity3, velocity4;
 float duty_cycle1, duty_cycle2, duty_cycle3, duty_cycle4;
 float angle1_init, angle2_init, angle3_init, angle4_init;
+int cycles;
 
 // Control parameters
 float current_Kp = 4.0f;
@@ -123,6 +124,9 @@ void setInputParams(const float* input_params) {
     current_des2 = input_params[5] / k_t;
     current_des3 = input_params[6] / k_t;
     current_des4 = input_params[7] / k_t;
+
+    // Number of cycles to repeat the motion
+    cycles = (int)input_params[8];
 }
 
 void setupExperiment() {
@@ -157,10 +161,13 @@ int main() {
         if (server.getParams(input_params, NUM_INPUTS)) {
             setInputParams(input_params);
             setupExperiment();
-            currentLoop.attach_us(CurrentLoop, 200); // 5kHz control loop
 
-            while (t.read() < 10) { // Run for a specified duration
-                wait_us(1000); // 1kHz update
+            for (int cycle = 0; cycle < cycles; cycle++) {
+                currentLoop.attach_us(CurrentLoop, 200); // 5kHz control loop
+                while (t.read() < 10) { // Run for a specified duration
+                    wait_us(1000); // 1kHz update
+                }
+                t.reset(); // Reset timer for next cycle
             }
 
             cleanupAfterExperiment();
