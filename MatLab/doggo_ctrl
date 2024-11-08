@@ -8,8 +8,7 @@ phase_offset = pi;       % Phase offset for the right leg
 num_points = 15;        % Number of points to generate (sets resolution)
 cycles = 10;     % num times that the legs cycle the points
 
-% Bezier curve control points
-const_point = [-0.05; -0.165]; %[x;y] or [q1,q2] constant coordinate (x,q1,q2 coordinates should be opposite sign due to direction motors are mounted)
+
 %pts_foot = repmat(const_point,1,8);
 
 %call the trajectory function
