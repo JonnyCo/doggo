@@ -1,0 +1,115 @@
+%this program will pass params into the mbed
+
+% Params
+omega = 15;              % Angular frequency (rad/s)
+hip_amp = pi / 8;        % Amplitude of hip oscillation
+knee_amp = pi / 12;      % Amplitude of knee oscillation
+phase_offset = pi;       % Phase offset for the right leg
+num_points = 15;        % Number of points to generate (sets resolution)
+
+% Bezier curve control points
+const_point = [-0.05; -0.165]; %[x;y] or [q1,q2] constant coordinate (x,q1,q2 coordinates should be opposite sign due to direction motors are mounted)
+%pts_foot = repmat(const_point,1,8);
+
+%call the trajectory function
+pts_foot = generate_elliptical_trajectory(omega, hip_amp, knee_amp, phase_offset, num_points);
+
+% Initial leg angles for encoder resets (negative of q1,q2 in lab handout due to direction motors are mounted)
+angle1_init = 0;
+angle2_init = -pi/2; 
+
+angle3_init = 0;
+angle4_init = -pi/2; 
+
+% Total experiment time is buffer,trajectory,buffer
+traj_time         = 1;
+pre_buffer_time   = 2; % this should be 0 for constant points, 2 for Bezier trajectories
+post_buffer_time  = 3;
+
+% Gains for impedance controller
+% If a gain is not being used in your Mbed code, set it to zero
+gains.K_1 = 250.0;
+gains.K_2 = 250.0;
+
+gains.K_3 = 250.0;
+gains.K_4 = 250.0;
+
+gains.D_1 = 15.0;
+gains.D_2 = 15.0;
+
+
+gains.D_3 = 20.0;
+gains.D_4 = 20.0;
+
+
+% Maximum duty cycle commanded by controller (should always be <=1.0)
+duty_maxF   = 0.4;
+duty_maxB   = 0.4;
+
+%calculate the elliptical trajectory!
+function pts_foot = generate_elliptical_trajectory(omega, hip_amp, knee_amp, phase_offset, num_points)
+    % Calculate the period for one full cycle
+    T = 2 * pi / abs(omega);  % Period for one full cycle
+
+    % Define time vector over one period with num_points points
+    t = linspace(0, T, num_points);  % Time vector for one period
+
+    % Compute joint angles
+    q1_des = -pi/4 + hip_amp * cos(omega * t);             % Left hip
+    q2_des = pi/2 + knee_amp * sin(omega * t);             % Left knee
+    q3_des = -pi/4 + hip_amp * cos(omega * t + phase_offset); % Right hip
+    q4_des = pi/2 + knee_amp * sin(omega * t + phase_offset); % Right knee
+
+    % Combine results into pts_foot matrix (for one period)
+    pts_foot = [q1_des; q2_des; q3_des; q4_des; t];
+
+    % Display total trajectory time
+    total_trajectory_time = t(end) - t(1);
+    fprintf('Total Trajectory Time (one period): %.2f seconds\n', total_trajectory_time);
+end
+
+%% Run Experiment
+[output_data] = RunTrajectoryExperiment(angle1_init, angle2_init, angle3_init, angle4_init, pts_foot,...
+                                        traj_time, pre_buffer_time, post_buffer_time,...
+                                        gains, duty_maxF, duty_maxB);
+%% Extract data
+t = output_data(:,1);
+
+xF = -output_data(:,21); % actual foot position in X (negative due to direction motors are mounted)
+yF = output_data(:,22); % actual foot position in Y
+   
+xdesF = -output_data(:,25); % desired foot position in X (negative due to direction motors are mounted)
+ydesF = output_data(:,26); % desired foot position in Y
+
+xB = -output_data(:,29);
+yB = output_data(:,30);
+
+xdesB = -output_data(:,33);
+ydesB = output_data(:,34);
+
+%% Plot foot vs desired
+figure(3); clf;
+subplot(321); hold on
+plot(t,xdesF,'r-'); plot(t,xF);
+xlabel('Time (s)'); ylabel('X (m)'); legend({'Desired','Actual'}); title("Front Leg");
+
+subplot(323); hold on
+plot(t,ydesF,'r-'); plot(t,yF);
+xlabel('Time (s)'); ylabel('Y (m)'); legend({'Desired','Actual'}); title("Front Leg"); 
+
+subplot(325); hold on
+plot(xdesF,ydesF,'r-'); plot(xF,yF,'k');
+xlabel('X (m)'); ylabel('Y (m)'); legend({'Desired','Actual'}); title("Front Leg");
+
+subplot(322); hold on
+plot(t,xdesB,'r-'); plot(t,xB);
+xlabel('Time (s)'); ylabel('X (m)'); legend({'Desired','Actual'}); title("Back Leg");
+
+subplot(324); hold on
+plot(t,ydesB,'r-'); plot(t,yB);
+xlabel('Time (s)'); ylabel('Y (m)'); legend({'Desired','Actual'}); title("Back Leg");
+
+subplot(326); hold on
+plot(xdesB,ydesB,'r-'); plot(xB,yB,'k'); title("Back Leg");
+xlabel('X (m)'); ylabel('Y (m)'); legend({'Desired','Actual'});
+
