@@ -226,10 +226,10 @@ function [Fc_left, Fc_right] = contact_forces(z, p)
 end
 function tau = control_law(t, z, p, dt, genome)
     % Define torsional spring and damper parameters
-    K_torsional_L = genome(7);    % Torsional spring constant
-    K_torsional_R = genome(8);    % Torsional spring constant
-    D_torsional_L = genome(9);  % Damping constant
-    D_torsional_R = genome(10);  % Damping constant
+    K_torsional_L = genome(22);    % Torsional spring constant
+    K_torsional_R = genome(23);    % Torsional spring constant
+    D_torsional_L = genome(25);  % Damping constant
+    D_torsional_R = genome(25);  % Damping constant
     max_torque = 3;     % Max torque limit
 
     % K_torsional_L = 4;
@@ -268,23 +268,84 @@ function tau = control_law(t, z, p, dt, genome)
 end
 function [th1_des, th2_des, th3_des, th4_des] = get_desired_joint_angles(t, genome)
     % Optimization parameters
-    omega = genome(1); % angular frequency (for all)
-    hip_amplitude_left = genome(2);
-    hip_amplitude_right = genome(2);
-    knee_amplitude_left = genome(4);
-    knee_amplitude_right = genome(4);
-    phaseOffset = genome(6);
+    %omega = genome(1); % angular frequency (for all)
+    % hip_amplitude_left = genome(2);
+    % hip_amplitude_right = genome(2);
+    % knee_amplitude_left = genome(4);
+    % knee_amplitude_right = genome(4);
+    % phaseOffset = genome(6);
+    % 
+    % shift1 = genome(11);
+    % shift2 = genome(12);
+    % shift3 = genome(11);
+    % shift4 = genome(12);
+    % 
+    % % Interpolate desired angles
+    % th1_des = shift1 + hip_amplitude_left * cos(omega * t);             % Left hip follows a cosine wave around initial angle
+    % th2_des = shift2 + knee_amplitude_left * sin(omega * t);             % Left knee follows a sine wave around initial angle
+    % th3_des = shift3 + hip_amplitude_right * cos(omega * t + phaseOffset); % Right hip, 180 degrees out of phase
+    % th4_des = shift4 + knee_amplitude_right * sin(omega * t + phaseOffset); % Right knee, 180 degrees out of phase
 
-    shift1 = genome(11);
-    shift2 = genome(12);
-    shift3 = genome(11);
-    shift4 = genome(12);
+    % load
+    T = genome(1);
+
+    % Critical points at specific fractions of the period T
+    t_crit = [0, T/5, 2*T/5, 3*T/5, 4*T/5, T];
+    th1_des_array = zeros(1,6);
+    th2_des_array = zeros(1,6);
+    th3_des_array = zeros(1,6);
+    th4_des_array = zeros(1,6);
+
+    % Calculate desired angles at critical points
+    for i = 1:length(t_crit)
+        th1_des_array(i) = genome(1 + 4*i - 3);
+        th2_des_array(i) = genome(2 + 4*i - 3);
+        th3_des_array(i) = genome(3 + 4*i - 3);
+        th4_des_array(i) = genome(4 + 4*i - 3);
+    end
+
+    % Ensure periodicity by setting the last point equal to the first
+    th1_des_array(end) = th1_des_array(1);
+    th2_des_array(end) = th2_des_array(1);
+    th3_des_array(end) = th3_des_array(1);
+    th4_des_array(end) = th4_des_array(1);
+
+    % Current time within the cycle
+    indexTime = mod(t, T);
+
+    % Linear interpolation between critical points
+    if indexTime >= t_crit(1) && indexTime < t_crit(2)
+        t_start = t_crit(1);
+        t_end = t_crit(2);
+        fraction = (indexTime - t_start) / (t_end - t_start);
+        idx = 1;
+    elseif indexTime >= t_crit(2) && indexTime < t_crit(3)
+        t_start = t_crit(2);
+        t_end = t_crit(3);
+        fraction = (indexTime - t_start) / (t_end - t_start);
+        idx = 2;
+    elseif indexTime >= t_crit(3) && indexTime < t_crit(4)
+        t_start = t_crit(3);
+        t_end = t_crit(4);
+        fraction = (indexTime - t_start) / (t_end - t_start);
+        idx = 3;
+    elseif indexTime >= t_crit(4) && indexTime < t_crit(5)
+        t_start = t_crit(4);
+        t_end = t_crit(5);
+        fraction = (indexTime - t_start) / (t_end - t_start);
+        idx = 4;
+    else % indexTime >= t_crit(5) && indexTime <= T
+        t_start = t_crit(5);
+        t_end = t_crit(6);
+        fraction = (indexTime - t_start) / (t_end - t_start);
+        idx = 5;
+    end
 
     % Interpolate desired angles
-    th1_des = shift1 + hip_amplitude_left * cos(omega * t);             % Left hip follows a cosine wave around initial angle
-    th2_des = shift2 + knee_amplitude_left * sin(omega * t);             % Left knee follows a sine wave around initial angle
-    th3_des = shift3 + hip_amplitude_right * cos(omega * t + phaseOffset); % Right hip, 180 degrees out of phase
-    th4_des = shift4 + knee_amplitude_right * sin(omega * t + phaseOffset); % Right knee, 180 degrees out of phase
+    th1_des = th1_des_array(idx) + fraction * (th1_des_array(idx+1) - th1_des_array(idx));
+    th2_des = th2_des_array(idx) + fraction * (th2_des_array(idx+1) - th2_des_array(idx));
+    th3_des = th3_des_array(idx) + fraction * (th3_des_array(idx+1) - th3_des_array(idx));
+    th4_des = th4_des_array(idx) + fraction * (th4_des_array(idx+1) - th4_des_array(idx));
 
 end
 function animate_robot(tspan, z_out, p, genome)
@@ -492,40 +553,28 @@ function animate_robot(tspan, z_out, p, genome)
 end
 function optimize_robot()
     %% Define Lower and Upper Bounds for Genome Parameters
-    lb = zeros(10,1);
-    lb(1) = 1;            % omega
-    lb(2) = 0;            % hip_amplitude_left
-    lb(3) = 0;            % hip_amplitude_right
-    lb(4) = 0;            % knee_amplitude_left
-    lb(5) = 0;            % knee_amplitude_right
-    lb(6) = 0;            % phase offset
-    lb(7:8) = 0;          % K_torsional_L and K_torsional_R
-    lb(9:10) = 0;         % D_torsional_L and D_torsional_R
+    lb = zeros(25,1);
+    lb(1) = 0.25;            % omega
+    lb(2:21) = -pi;            % 
+    lb(22:23) = 0;          % K_torsional_L and K_torsional_R
+    lb(24:25) = 0;         % D_torsional_L and D_torsional_R
 
-    lb(11:14) = -0.34;
-
-    ub = zeros(10,1);
-    ub(1) = 20;           
-    ub(2) = 0.75;         
-    ub(3) = 0.75;         
-    ub(4) = 0.75;         
-    ub(5) = 0.75;         
-    ub(6) = 2*pi;           
-    ub(7:8) = 20;          % K_torsional_L and K_torsional_R
-    ub(9:10) = 1;         % D_torsional_L and D_torsional_R
-
-    ub(11:14) = 0.34;
+    ub = zeros(25,1);
+    ub(1) = 1;           
+    ub(2:21) = pi;                  
+    ub(22:23) = 20;          % K_torsional_L and K_torsional_R
+    ub(24:25) = 1;         % D_torsional_L and D_torsional_R
 
     %% Initial Guess
     x0 = [15, pi/8, pi/8, pi/12, pi/12, pi, 4, 4, 0.2, 0.2];  % Start from the middle of the bounds
 
     %% Optimization Options
     %options = optimoptions('simulannealbnd', 'Display', 'iter', 'MaxIterations', 1000);
-    options = optimoptions('ga', 'Display', 'iter', 'MaxGenerations', 30, 'PopulationSize', 50);
+    options = optimoptions('ga', 'Display', 'iter', 'MaxGenerations', 30, 'PopulationSize', 100);
 
     %% Run Optimization
     %[genome_opt, fval] = simulannealbnd(@objective_function, x0, lb, ub, options);
-    [genome_opt, fval] = ga(@objective_function, 14, [], [], [], [], lb, ub, [], options);
+    [genome_opt, fval] = ga(@objective_function, 25, [], [], [], [], lb, ub, [], options);
 
     %% Best Distance Achieved
     best_distance = -fval;
