@@ -6,6 +6,7 @@ hip_amp = pi / 8;        % Amplitude of hip oscillation
 knee_amp = pi / 12;      % Amplitude of knee oscillation
 phase_offset = pi;       % Phase offset for the right leg
 num_points = 15;        % Number of points to generate (sets resolution)
+cycles = 10;     % num times that the legs cycle the points
 
 % Bezier curve control points
 const_point = [-0.05; -0.165]; %[x;y] or [q1,q2] constant coordinate (x,q1,q2 coordinates should be opposite sign due to direction motors are mounted)
@@ -71,7 +72,7 @@ end
 %% Run Experiment
 [output_data] = RunTrajectoryExperiment(angle1_init, angle2_init, angle3_init, angle4_init, pts_foot,...
                                         traj_time, pre_buffer_time, post_buffer_time,...
-                                        gains, duty_maxF, duty_maxB);
+                                        gains, duty_maxF, duty_maxB, cycles);
 %% Extract data
 t = output_data(:,1);
 
