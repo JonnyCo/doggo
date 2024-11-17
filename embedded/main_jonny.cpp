@@ -428,37 +428,6 @@ void setupExperiment() {
 
 
 
-void calculateDynamics(float M11, float M12, float M22,
-                       float Jx_th1, float Jx_th2, 
-                       float Jy_th1, float Jy_th2, 
-                       float Jx_th3, float Jx_th4, 
-                       float Jy_th3, float Jy_th4) {
-    // Clear and populate Mass Matrix
-    MassMatrix.Clear();
-    MassMatrix << M11 << M12
-               << M12 << M22;
-
-    // Populate Jacobian matrix for Front
-    Jacobian_Front.Clear();
-    Jacobian_Front << Jx_th1 << Jx_th2
-                   << Jy_th1 << Jy_th2;
-
-    // Populate Jacobian matrix for Back
-    Jacobian_Back.Clear();
-    Jacobian_Back << Jx_th3 << Jx_th4
-                  << Jy_th3 << Jy_th4;
-
-    // Calculate Lambda matrix for Front
-    JacobianT_Front = MatrixMath::Transpose(Jacobian_Front);
-    InverseMassMatrix = MatrixMath::Inv(MassMatrix);
-    temp_product_Front = Jacobian_Front * InverseMassMatrix * JacobianT_Front;
-    Lambda_Front = MatrixMath::Inv(temp_product_Front); 
-
-    // Calculate Lambda matrix for Back
-    JacobianT_Back = MatrixMath::Transpose(Jacobian_Back);
-    temp_product_Back = Jacobian_Back * InverseMassMatrix * JacobianT_Back;
-    Lambda_Back = MatrixMath::Inv(temp_product_Back); 
-}
 
 void cleanupAfterExperiment() {
     // Indicate that the experiment is complete
