@@ -1,5 +1,3 @@
-//TODO: Compare with older labs
-//Make sure we're not mixing variables
 
 #include "mbed.h"
 #include "rtos.h"
@@ -203,7 +201,8 @@ void CurrentLoop(){
     prev_current_des4 = current_des4; 
 }
 
-void setInputParamsOld(const float* input_params) {
+void setInputParamsOLD(const float* input_params, float* q1_des, float* q2_des, float* q3_des, float* q4_des) {
+    // Extract parameters in the order given in input_params array
     cycles          = input_params[0];
     start_period    = input_params[1];  // First buffer time, before trajectory
     traj_period     = input_params[2];  // Trajectory time/length
@@ -211,17 +210,26 @@ void setInputParamsOld(const float* input_params) {
 
     angle1_init     = input_params[4];  // Initial angle for q1 (rad)
     angle2_init     = input_params[5];  // Initial angle for q2 (rad)
-    angle3_init     = input_params[6];
-    angle4_init     = input_params[7];
+    angle3_init     = input_params[6];  // Initial angle for q3 (rad)
+    angle4_init     = input_params[7];  // Initial angle for q4 (rad)
 
-    K_h      = input_params[8];  // Foot stiffness N/m
-    K_k      = input_params[9];
-    D_h      = input_params[10];
-    D_k      = input_params[11];
+    K_h             = input_params[8];  // Hip stiffness
+    K_k             = input_params[9];  // Knee stiffness
+    D_h             = input_params[10]; // Hip damping
+    D_k             = input_params[11]; // Knee damping
 
-    duty_max_Front  = input_params[12]; // Maximum duty factor
-    duty_max_Back   = input_params[13];
+    duty_max_Front  = input_params[12]; // Maximum duty cycle for front
+    duty_max_Back   = input_params[13]; // Maximum duty cycle for back
+
+    // Extract desired angles
+    for (int i = 0; i < 5; i++) { // Assuming you have 5 trajectory points for each joint
+        q1_des[i] = input_params[14 + i * 4];     // q1_des_1, q1_des_2, ..., q1_des_5
+        q2_des[i] = input_params[15 + i * 4];     // q2_des_1, q2_des_2, ..., q2_des_5
+        q3_des[i] = input_params[16 + i * 4];     // q3_des_1, q3_des_2, ..., q3_des_5
+        q4_des[i] = input_params[17 + i * 4];     // q4_des_1, q4_des_2, ..., q4_des_5
+    }
 }
+
 
 void setInputParams(const float* input_params, float* q1_des,float* q2_des, float* q3_des, float* q4_des) {
     // get period
@@ -241,80 +249,7 @@ void setInputParams(const float* input_params, float* q1_des,float* q2_des, floa
     D_R = input_params[24];
 }
 
-
-int setJointPos0(float* q1, float* q2, float* q3, float* q4, float* t_q, int numPoints, int t_current){
-    int result = 0;
-    
-    for (int i = 0; i < numPoints; i++){
-        if(t_current >= t_q[i] && t_current < t_q[i + 1]){
-            th1_des = q1[i];
-            th2_des = q2[i];
-            th3_des = q3[i];
-            th4_des = q4[i];
-
-            float dt = t_q[i + 1] - t_q[i];
-
-            // Compute desired joint velocities using finite difference
-            dth1_des = (q1[i + 1] - q1[i]) / dt;
-            dth2_des = (q2[i + 1] - q2[i]) / dt;
-            dth3_des = (q3[i + 1] - q3[i]) / dt;
-            dth4_des = (q4[i + 1] - q4[i]) / dt;
-
-            result = 1;
-        }
-
-        if (t_current >= t_q[numPoints-1]) {
-            th1_des = q1[numPoints-1];
-            th2_des = q2[numPoints-1];
-            th3_des = q3[numPoints-1];
-            th4_des = q4[numPoints-1];
-
-            result = 1;
-    }
-    }
-    return result;
-}
-
-int setJointPos(float* q1, float* q2, float* q3, float* q4, float* dq1, float* dq2, float* dq3, float* dq4, float* tq, int numPoints, int t_current, const float* input_params,int startIndex){
-    int result = 0;
-    for (int i = 0; i < numPoints; i++) {
-        q1[i] = input_params[startIndex + i*9];
-        q2[i] = input_params[startIndex + i*9 + 1];
-        q3[i] = input_params[startIndex + i*9 + 2];
-        q4[i] = input_params[startIndex + i*9 + 3];
-        dq1[i] = input_params[startIndex + i*9 + 4];
-        dq2[i] = input_params[startIndex + i*9 + 5];
-        dq3[i] = input_params[startIndex + i*9 + 6];
-        dq4[i] = input_params[startIndex + i*9 + 7];
-        tq[i] = input_params[startIndex + i*9 + 8];
-    }
-    
-    for (int i = 0; i < numPoints; i++){
-        if(t_current >= tq[i] && t_current < tq[i + 1]){
-            th1_des = q1[i];
-            th2_des = q2[i];
-            th3_des = q3[i];
-            th4_des = q4[i];
-
-            dth1_des = dq1[i];
-            dth2_des = dq2[i];
-            dth3_des = dq3[i];
-            dth4_des = dq4[i];
-
-            result = 1;
-        }
-
-        if (t_current >= tq[numPoints-1]) {
-            th1_des = q1[numPoints-1];
-            th2_des = q2[numPoints-1];
-            th3_des = q3[numPoints-1];
-            th4_des = q4[numPoints-1];
-
-            result = 1;
-    }
-    }
-    return result;
-}
+// Removed lots of code from here
 
 void setInterpPos(float* q1_des, float* q2_des, float* q3_des, float* q4_des, float cycle_period, float curr_time) {
     // Calculate the time fraction into the current cycle
@@ -426,9 +361,6 @@ void setupExperiment() {
     motorShield.motorDWrite(0, 0); // Turn motor D off
 }
 
-
-
-
 void cleanupAfterExperiment() {
     // Indicate that the experiment is complete
     server.setExperimentComplete();
@@ -463,9 +395,6 @@ int main (void)
             float input_params[25] = {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 15.000000, 15.000000, 0.500000, 0.500000};           float q1[5], q2[5], q3[5], q4[5];
             setInputParams(input_params,q1,q2,q3,q4);
             //pc.printf("%f \n\r",cycle_period);
-            // Get foot trajectory points
-            // float foot_pts[2 * (BEZIER_ORDER_FOOT + 1)];
-            // setFootPoints(foot_pts, input_params, 21, 2 * (BEZIER_ORDER_FOOT + 1));
 
             // Attach current loop interrupt
             currentLoop.attach_us(CurrentLoop,current_control_period_us);
