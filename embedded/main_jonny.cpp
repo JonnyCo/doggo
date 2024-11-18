@@ -1,4 +1,4 @@
-// Problem still exist in the interpolation I believe
+// Add in initial angles to theta des
 #include "mbed.h"
 #include "rtos.h"
 #include "EthernetInterface.h"
@@ -50,9 +50,9 @@ float angle1, angle2, angle3, angle4;
 float velocity1, velocity2, velocity3, velocity4;
 float duty_cycle1, duty_cycle2, duty_cycle3, duty_cycle4;
 float angle1_init = 0.0;
-float angle2_init = -3.14/2;
+float angle2_init = 0.0;
 float angle3_init = 0.0;
-float angle4_init = -3.14/2;
+float angle4_init = 0.0;
 float curr_time = 0;
 
 
@@ -251,40 +251,41 @@ void setInterpPos(float* q1_des, float* q2_des, float* q3_des, float* q4_des, fl
     // Calculate the local fraction within the current segment
     float local_fraction = (cycle_fraction * 5) - segment;
 
-    // Interpolate within each segment
+    // Interpolate within each segment and add initial angles
     switch (segment) {
         case 0:
-            th1_des = q1_des[0] + local_fraction * (q1_des[1] - q1_des[0]);
-            th2_des = q2_des[0] + local_fraction * (q2_des[1] - q2_des[0]);
-            th3_des = q3_des[0] + local_fraction * (q3_des[1] - q3_des[0]);
-            th4_des = q4_des[0] + local_fraction * (q4_des[1] - q4_des[0]);
+            th1_des = angle1_init + q1_des[0] + local_fraction * (q1_des[1] - q1_des[0]);
+            th2_des = angle2_init + q2_des[0] + local_fraction * (q2_des[1] - q2_des[0]);
+            th3_des = angle3_init + q3_des[0] + local_fraction * (q3_des[1] - q3_des[0]);
+            th4_des = angle4_init + q4_des[0] + local_fraction * (q4_des[1] - q4_des[0]);
             break;
         case 1:
-            th1_des = q1_des[1] + local_fraction * (q1_des[2] - q1_des[1]);
-            th2_des = q2_des[1] + local_fraction * (q2_des[2] - q2_des[1]);
-            th3_des = q3_des[1] + local_fraction * (q3_des[2] - q3_des[1]);
-            th4_des = q4_des[1] + local_fraction * (q4_des[2] - q4_des[1]);
+            th1_des = angle1_init + q1_des[1] + local_fraction * (q1_des[2] - q1_des[1]);
+            th2_des = angle2_init + q2_des[1] + local_fraction * (q2_des[2] - q2_des[1]);
+            th3_des = angle3_init + q3_des[1] + local_fraction * (q3_des[2] - q3_des[1]);
+            th4_des = angle4_init + q4_des[1] + local_fraction * (q4_des[2] - q4_des[1]);
             break;
         case 2:
-            th1_des = q1_des[2] + local_fraction * (q1_des[3] - q1_des[2]);
-            th2_des = q2_des[2] + local_fraction * (q2_des[3] - q2_des[2]);
-            th3_des = q3_des[2] + local_fraction * (q3_des[3] - q3_des[2]);
-            th4_des = q4_des[2] + local_fraction * (q4_des[3] - q4_des[2]);
+            th1_des = angle1_init + q1_des[2] + local_fraction * (q1_des[3] - q1_des[2]);
+            th2_des = angle2_init + q2_des[2] + local_fraction * (q2_des[3] - q2_des[2]);
+            th3_des = angle3_init + q3_des[2] + local_fraction * (q3_des[3] - q3_des[2]);
+            th4_des = angle4_init + q4_des[2] + local_fraction * (q4_des[3] - q4_des[2]);
             break;
         case 3:
-            th1_des = q1_des[3] + local_fraction * (q1_des[4] - q1_des[3]);
-            th2_des = q2_des[3] + local_fraction * (q2_des[4] - q2_des[3]);
-            th3_des = q3_des[3] + local_fraction * (q3_des[4] - q3_des[3]);
-            th4_des = q4_des[3] + local_fraction * (q4_des[4] - q4_des[3]);
+            th1_des = angle1_init + q1_des[3] + local_fraction * (q1_des[4] - q1_des[3]);
+            th2_des = angle2_init + q2_des[3] + local_fraction * (q2_des[4] - q2_des[3]);
+            th3_des = angle3_init + q3_des[3] + local_fraction * (q3_des[4] - q3_des[3]);
+            th4_des = angle4_init + q4_des[3] + local_fraction * (q4_des[4] - q4_des[3]);
             break;
         case 4:
-            th1_des = q1_des[4];
-            th2_des = q2_des[4];
-            th3_des = q3_des[4];
-            th4_des = q4_des[4];
+            th1_des = angle1_init + q1_des[4];
+            th2_des = angle2_init + q2_des[4];
+            th3_des = angle3_init + q3_des[4];
+            th4_des = angle4_init + q4_des[4];
             break;
     }
 }
+
 
 void setInterpVel(float* q1_des, float* q2_des, float* q3_des, float* q4_des, float cycle_period, float curr_time) {
 
@@ -299,9 +300,12 @@ void setInterpVel(float* q1_des, float* q2_des, float* q3_des, float* q4_des, fl
 
     // Segment time interval (1/5 of the total cycle period)
     float segment_time = cycle_period / 5.0;
+    //pc.printf("dth1_des: %f, dth2_des: %f, dth3_des: %f, dth4_des: %f\n", dth1_des, dth2_des, dth3_des, dth4_des);
+
 
     // Interpolate velocity within each segment
     switch (segment) {
+
         case 0:
             dth1_des = (q1_des[1] - q1_des[0]) / segment_time;
             dth2_des = (q2_des[1] - q2_des[0]) / segment_time;
@@ -453,6 +457,7 @@ int main (void)
 
                     //pc.printf("q11%f \n\r",q1[1]);
                     //pc.printf("q1des%f \n\r",th1_des);
+                    pc.printf("dth1_des: %f, dth2_des: %f, dth3_des: %f, dth4_des: %f\n", dth1_des, dth2_des, dth3_des, dth4_des);
                    
 
                     //Joint Space torque
@@ -460,7 +465,9 @@ int main (void)
                     float tauq2 = K_k*(th2_des-th2)+D_k*(dth2_des-dth2);
                     float tauq3 = K_h*(th3_des-th3)+D_h*(dth3_des-dth3);
                     float tauq4 = K_k*(th4_des-th4)+D_k*(dth4_des-dth4);
-                    //pc.printf("%f \n\r",tauq1);
+                    pc.printf("th1: %f, th2: %f, th3: %f, th4: %f\n", th1, th2, th3, th4);
+                    pc.printf("tauq1: %f, tauq2: %f, tauq3: %f, tauq4: %f\n", tauq1, tauq2, tauq3, tauq4);
+
                     current_des1 = tauq1/k_t;      
                     current_des2 = tauq2/k_t;  
                     current_des3 = tauq3/k_t;      
