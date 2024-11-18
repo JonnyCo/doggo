@@ -49,10 +49,10 @@ float current_int1 = 0, current_int2 = 0, current_int3 = 0, current_int4 = 0;
 float angle1, angle2, angle3, angle4;
 float velocity1, velocity2, velocity3, velocity4;
 float duty_cycle1, duty_cycle2, duty_cycle3, duty_cycle4;
-float angle1_init = 0.0;
-float angle2_init = 0.0;
-float angle3_init = 0.0;
-float angle4_init = 0.0;
+float angle1_init ;
+float angle2_init ;
+float angle3_init ;
+float angle4_init ;
 float curr_time = 0;
 
 
@@ -130,6 +130,7 @@ void CurrentLoop(){
     current_int1 = fmaxf( fminf(current_int1, current_int_max_Front), -current_int_max_Front);      // anti-windup
     float ff1 = R*current_des1 + k_t*velocity1;                                         // feedforward terms
     duty_cycle1 = (ff1 + current_Kp_Front*err_c1 + current_Ki_Front*current_int1)/supply_voltage;   // PI current controller
+    pc.printf("duty_cycle_1: %f\n",duty_cycle1);
     
     float absDuty1 = abs(duty_cycle1);
     if (absDuty1 > duty_max_Front) {
@@ -457,27 +458,38 @@ int main (void)
 
                     //pc.printf("q11%f \n\r",q1[1]);
                     //pc.printf("q1des%f \n\r",th1_des);
-                    pc.printf("dth1_des: %f, dth2_des: %f, dth3_des: %f, dth4_des: %f\n", dth1_des, dth2_des, dth3_des, dth4_des);
-                   
+                    //pc.printf("dth1_des: %f, dth2_des: %f, dth3_des: %f, dth4_des: %f\n", dth1_des, dth2_des, dth3_des, dth4_des);
+                    //pc.printf("th1_des: %f, th2_des: %f, th3_des: %f, th4_des: %f\n", th1_des, th2_des, th3_des, th4_des);
+                    //pc.printf("th1: %f, th2: %f, th3: %f, th4: %f\n", th1, th2, th3, th4);
+
+                    //pc.printf("th2: %.10f, th2_des: %.10f\n", th2, th2_des);
+                    //pc.printf("th4: %.10f, th4_des: %.10f\n", th4, th4_des);
+
+                    //float derr_1 = dth1_des-dth1;
+
+                    //pc.printf("derr_1: %f\n",derr_1);
+                    //float err_1 = th1_des-th1;
+                    //pc.printf("err_1: %f\n",err_1);
 
                     //Joint Space torque
                     float tauq1 = K_h*(th1_des-th1)+D_h*(dth1_des-dth1);
                     float tauq2 = K_k*(th2_des-th2)+D_k*(dth2_des-dth2);
                     float tauq3 = K_h*(th3_des-th3)+D_h*(dth3_des-dth3);
                     float tauq4 = K_k*(th4_des-th4)+D_k*(dth4_des-dth4);
-                    pc.printf("th1: %f, th2: %f, th3: %f, th4: %f\n", th1, th2, th3, th4);
-                    pc.printf("tauq1: %f, tauq2: %f, tauq3: %f, tauq4: %f\n", tauq1, tauq2, tauq3, tauq4);
+                    
+                    //pc.printf("tauq1: %f, tauq2: %f, tauq3: %f, tauq4: %f\n", tauq1, tauq2, tauq3, tauq4);
+                    //tauq1 = 0;
+                    //tauq2 = 0;
+                    //tauq3 = 0;
+                    //tauq4 = 0;
+            
 
-                    current_des1 = tauq1/k_t;      
-                    current_des2 = tauq2/k_t;  
-                    current_des3 = tauq3/k_t;      
-                    current_des4 = tauq4/k_t; 
-                    //pc.printf("%f \n\r",current_des1);
-                    // pc.printf("Angle 1:%f \n\r",th1);
-                    // pc.printf("Angle 2:%f \n\r",th2);
-                    // pc.printf("Angle 3:%f \n\r",th3);
-                    // pc.printf("Angle 4:%f \n\r",th4);
-                    // pc.printf("---------\n\r");
+                    current_des1 = 0; // tauq1/k_t;      
+                    current_des2 = 0; // tauq2/k_t;  
+                    current_des3 = 0; // tauq3/k_t;      
+                    current_des4 = 0; // tauq4/k_t; 
+
+
 
                     // Form output to send to MATLAB     
                     float output_data[NUM_OUTPUTS];
@@ -526,7 +538,7 @@ int main (void)
                     output_data[34] = rDesFoot_Back[1];
                     output_data[35] = vDesFoot_Back[0];
                     output_data[36] = vDesFoot_Back[1];
-                    pc.printf("th1_des: %f, th2_des: %f, th3_des: %f, th4_des: %f\n", th1_des, th2_des, th3_des, th4_des);
+                    //pc.printf("th1_des: %f, th2_des: %f, th3_des: %f, th4_des: %f\n", th1_des, th2_des, th3_des, th4_des);
 
                     // Send data to MATLAB
                     server.sendData(output_data,NUM_OUTPUTS);
