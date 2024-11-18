@@ -130,7 +130,7 @@ void CurrentLoop(){
     current_int1 = fmaxf( fminf(current_int1, current_int_max_Front), -current_int_max_Front);      // anti-windup
     float ff1 = R*current_des1 + k_t*velocity1;                                         // feedforward terms
     duty_cycle1 = (ff1 + current_Kp_Front*err_c1 + current_Ki_Front*current_int1)/supply_voltage;   // PI current controller
-    pc.printf("duty_cycle_1: %f\n",duty_cycle1);
+    
     
     float absDuty1 = abs(duty_cycle1);
     if (absDuty1 > duty_max_Front) {
@@ -279,10 +279,10 @@ void setInterpPos(float* q1_des, float* q2_des, float* q3_des, float* q4_des, fl
             th4_des = angle4_init + q4_des[3] + local_fraction * (q4_des[4] - q4_des[3]);
             break;
         case 4:
-            th1_des = angle1_init + q1_des[4];
-            th2_des = angle2_init + q2_des[4];
-            th3_des = angle3_init + q3_des[4];
-            th4_des = angle4_init + q4_des[4];
+            th1_des = angle1_init + q1_des[4] + local_fraction * (q1_des[0] - q1_des[4]);
+            th2_des = angle2_init + q2_des[4] + local_fraction * (q2_des[0] - q2_des[4]);
+            th3_des = angle3_init + q3_des[4] + local_fraction * (q3_des[0] - q3_des[4]);
+            th4_des = angle4_init + q4_des[4] + local_fraction * (q4_des[0] - q4_des[4]);
             break;
     }
 }
@@ -332,10 +332,10 @@ void setInterpVel(float* q1_des, float* q2_des, float* q3_des, float* q4_des, fl
             dth4_des = (q4_des[4] - q4_des[3]) / segment_time;
             break;
         case 4:
-            dth1_des = 0.0f;
-            dth2_des = 0.0f;
-            dth3_des = 0.0f;
-            dth4_des = 0.0f;
+            dth1_des = (q1_des[0] - q1_des[4]) / segment_time;
+            dth2_des = (q2_des[0] - q2_des[4]) / segment_time;
+            dth3_des = (q3_des[0] - q3_des[4]) / segment_time;
+            dth4_des = (q4_des[0] - q4_des[4]) / segment_time;
             break;
     }
 }
@@ -453,6 +453,8 @@ int main (void)
                     float rDesFoot_Front[2] , vDesFoot_Front[2];
                     float rDesFoot_Back[2] , vDesFoot_Back[2];
 
+                    curr_time = t.read();
+
                     setInterpPos(q1_des, q2_des, q3_des, q4_des, cycle_period, curr_time);
                     setInterpVel(q1_des, q2_des, q3_des, q4_des, cycle_period, curr_time);
 
@@ -484,10 +486,13 @@ int main (void)
                     //tauq4 = 0;
             
 
-                    current_des1 = 0; // tauq1/k_t;      
-                    current_des2 = 0; // tauq2/k_t;  
-                    current_des3 = 0; // tauq3/k_t;      
-                    current_des4 = 0; // tauq4/k_t; 
+                    current_des1 = tauq1/k_t;      
+                    current_des2 = tauq2/k_t;  
+                    current_des3 = tauq3/k_t;      
+                    current_des4 = tauq4/k_t;
+
+                    pc.printf("duty_cycle_1: %f\n",duty_cycle1);
+                     
 
 
 
