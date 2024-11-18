@@ -1,4 +1,4 @@
-function output_data = RunTrajectoryExperiment(angle1_init, angle2_init, angle3_init, angle4_init, pts_foot, traj_time, pre_buffer_time, post_buffer_time, gains, duty_maxF, duty_maxB)
+function output_data = RunTrajectoryExperiment(cycles, angle1_init, angle2_init, angle3_init, angle4_init, pts_foot, traj_time, pre_buffer_time, post_buffer_time, gains, duty_maxF, duty_maxB)
     
     % Figure for plotting motor data
     figure(1);  clf;       
@@ -301,26 +301,21 @@ function output_data = RunTrajectoryExperiment(angle1_init, angle2_init, angle3_
     start_period                = pre_buffer_time;    % In seconds 
     end_period                  = post_buffer_time;   % In seconds
     
-    K_xxF                     = gains.K_xxF; % Stiffness
-    K_yyF                     = gains.K_yyF; % Stiffness
-    K_xyF                     = gains.K_xyF; % Stiffness
-    K_xxB                     = gains.K_xxB; % Stiffness
-    K_yyB                     = gains.K_yyB; % Stiffness
-    K_xyB                     = gains.K_xyB; % Stiffness
+    K_h                     = gains.K_h; % Stiffness hip
+    K_k                     = gains.K_k; % Stiffness knee
 
-    D_xxF                     = gains.D_xxF; % Damping
-    D_yyF                     = gains.D_yyF; % Damping
-    D_xyF                     = gains.D_xyF; % Damping
-    D_xxB                     = gains.D_xxB; % Damping
-    D_yyB                     = gains.D_yyB; % Damping
-    D_xyB                     = gains.D_xyB; % Damping
+
+    D_h                     = gains.D_h; % Damping hip
+    D_k                     = gains.D_k; % Damping knee
+
     
     % Specify inputs
-    input = [start_period traj_time end_period];
+    input = [cycles];
+    input = [input start_period traj_time end_period];
     input = [input angle1_init angle2_init angle3_init angle4_init];
-    input = [input K_xxF K_yyF K_xyF D_xxF D_yyF D_xyF K_xxB K_yyB K_xyB D_xxB D_yyB D_xyB];
+    input = [input K_h K_k D_h D_k]; % hip and knee params
     input = [input duty_maxF duty_maxB];
-    input = [input pts_foot(:)']; % final size of input should be 28x1
+    input = [input pts_foot(:)']; % final size of input should be 28x1 14 + 20 = 34
     
     params.timeout  = (start_period+traj_time+end_period);  
     
