@@ -1,4 +1,4 @@
-
+// Problem still exist in the interpolation I believe
 #include "mbed.h"
 #include "rtos.h"
 #include "EthernetInterface.h"
@@ -10,8 +10,7 @@
 #include "Matrix.h"
 #include "MatrixMath.h"
 
-#define TRAJ_POINTS    15
-#define NUM_INPUTS (22 + 9*TRAJ_POINTS)  
+#define NUM_INPUTS 34  
 #define NUM_OUTPUTS 37
 
 #define PULSE_TO_RAD (2.0f*3.14159f / 1200.0f)
@@ -54,10 +53,18 @@ float angle1_init = 0.0;
 float angle2_init = -3.14/2;
 float angle3_init = 0.0;
 float angle4_init = -3.14/2;
+float curr_time = 0;
+
 
 //Desired variables
 float th1_des, th2_des, th3_des, th4_des;
 float dth1_des, dth2_des, dth3_des, dth4_des;
+
+float q1_des[5];
+float q2_des[5];
+float q3_des[5];
+float q4_des[5];
+
 
 // Fixed kinematic parameters
 const float l_OA=.011; 
@@ -94,9 +101,8 @@ float duty_max_Front = 0.4;
 float current_Kp_Back = 4.0f;         
 float current_Ki_Back = 0.4f;           
 float current_int_max_Back = 3.0f;       
-float duty_max_Back = 0.4;      
+float duty_max_Back = 0.4;     // look into depricating 
 
-float K_L, K_R, D_L, D_R; // This will be depricated
 float K_h, K_k, D_h, D_k;
 
 
@@ -201,11 +207,12 @@ void CurrentLoop(){
     prev_current_des4 = current_des4; 
 }
 
-void setInputParamsOLD(const float* input_params, float* q1_des, float* q2_des, float* q3_des, float* q4_des) {
+void setInputParams(const float* input_params, float* q1_des, float* q2_des, float* q3_des, float* q4_des) {
     // Extract parameters in the order given in input_params array
     cycles          = input_params[0];
     start_period    = input_params[1];  // First buffer time, before trajectory
-    traj_period     = input_params[2];  // Trajectory time/length
+    traj_period     = input_params[2];
+    cycle_period    = input_params[2]; // Trajectory time/length
     end_period      = input_params[3];  // Second buffer time, after trajectory
 
     angle1_init     = input_params[4];  // Initial angle for q1 (rad)
@@ -217,12 +224,12 @@ void setInputParamsOLD(const float* input_params, float* q1_des, float* q2_des, 
     K_k             = input_params[9];  // Knee stiffness
     D_h             = input_params[10]; // Hip damping
     D_k             = input_params[11]; // Knee damping
-
+    
     duty_max_Front  = input_params[12]; // Maximum duty cycle for front
     duty_max_Back   = input_params[13]; // Maximum duty cycle for back
 
     // Extract desired angles
-    for (int i = 0; i < 5; i++) { // Assuming you have 5 trajectory points for each joint
+    for (int i = 0; i < 5; i++) { // 5 trajectory points for each joint
         q1_des[i] = input_params[14 + i * 4];     // q1_des_1, q1_des_2, ..., q1_des_5
         q2_des[i] = input_params[15 + i * 4];     // q2_des_1, q2_des_2, ..., q2_des_5
         q3_des[i] = input_params[16 + i * 4];     // q3_des_1, q3_des_2, ..., q3_des_5
@@ -231,27 +238,10 @@ void setInputParamsOLD(const float* input_params, float* q1_des, float* q2_des, 
 }
 
 
-void setInputParams(const float* input_params, float* q1_des,float* q2_des, float* q3_des, float* q4_des) {
-    // get period
-    cycle_period = input_params[0];
-    
-    // get joint angles
-    for(int i=0;i<6;i++){
-    q1_des[i] = input_params[i];
-    q2_des[i] = input_params[i+5];
-    q3_des[i] = input_params[i+10];
-    q4_des[i] = input_params[i+15];
-    }
-    // get spring params
-    K_L = input_params[21];
-    K_R = input_params[22];
-    D_L = input_params[23];
-    D_R = input_params[24];
-}
-
 // Removed lots of code from here
 
 void setInterpPos(float* q1_des, float* q2_des, float* q3_des, float* q4_des, float cycle_period, float curr_time) {
+
     // Calculate the time fraction into the current cycle
     float cycle_fraction = fmod(curr_time, cycle_period) / cycle_period;
 
@@ -297,6 +287,7 @@ void setInterpPos(float* q1_des, float* q2_des, float* q3_des, float* q4_des, fl
 }
 
 void setInterpVel(float* q1_des, float* q2_des, float* q3_des, float* q4_des, float cycle_period, float curr_time) {
+
     // Calculate the time fraction into the current cycle
     float cycle_fraction = fmod(curr_time, cycle_period) / cycle_period;
 
@@ -382,18 +373,18 @@ int main (void)
     server.init();
     
     // Continually get input from MATLAB and run experiments
-    //float input_params[NUM_INPUTS];
-    float dummy_params[37];
+    float input_params[NUM_INPUTS];
+    //float dummy_params[37];
     
     while(1) {
         
         // If there are new inputs, this code will run
-        if (server.getParams(dummy_params,37)){
+        if (server.getParams(input_params,NUM_INPUTS)){
         //if (server.getParams(input_params,NUM_INPUTS)) { //Get input
 
             //Manually set input
-            float input_params[25] = {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 15.000000, 15.000000, 0.500000, 0.500000};           float q1[5], q2[5], q3[5], q4[5];
-            setInputParams(input_params,q1,q2,q3,q4);
+            //float input_params[25] = {1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 15.000000, 15.000000, 0.500000, 0.500000};           float q1[5], q2[5], q3[5], q4[5];
+            setInputParams(input_params,q1_des,q2_des,q3_des,q4_des);
             //pc.printf("%f \n\r",cycle_period);
 
             // Attach current loop interrupt
@@ -457,17 +448,18 @@ int main (void)
                     float rDesFoot_Front[2] , vDesFoot_Front[2];
                     float rDesFoot_Back[2] , vDesFoot_Back[2];
 
-                    setInterpPos(q1,q2,q3,q4,cycle_period,t);
-                    setInterpVel(q1,q2,q3,q4,cycle_period,t);
+                    setInterpPos(q1_des, q2_des, q3_des, q4_des, cycle_period, curr_time);
+                    setInterpVel(q1_des, q2_des, q3_des, q4_des, cycle_period, curr_time);
+
                     //pc.printf("q11%f \n\r",q1[1]);
                     //pc.printf("q1des%f \n\r",th1_des);
                    
 
                     //Joint Space torque
-                    float tauq1 = K_R*(th1_des-th1)+D_R*(dth1_des-dth1);
-                    float tauq2 = K_R*(th2_des-th2)+D_R*(dth2_des-dth2);
-                    float tauq3 = K_L*(th3_des-th3)+D_L*(dth3_des-dth3);
-                    float tauq4 = K_L*(th4_des-th4)+D_L*(dth4_des-dth4);
+                    float tauq1 = K_h*(th1_des-th1)+D_h*(dth1_des-dth1);
+                    float tauq2 = K_k*(th2_des-th2)+D_k*(dth2_des-dth2);
+                    float tauq3 = K_h*(th3_des-th3)+D_h*(dth3_des-dth3);
+                    float tauq4 = K_k*(th4_des-th4)+D_k*(dth4_des-dth4);
                     //pc.printf("%f \n\r",tauq1);
                     current_des1 = tauq1/k_t;      
                     current_des2 = tauq2/k_t;  
@@ -528,7 +520,6 @@ int main (void)
                     output_data[35] = vDesFoot_Back[0];
                     output_data[36] = vDesFoot_Back[1];
                     pc.printf("th1_des: %f, th2_des: %f, th3_des: %f, th4_des: %f\n", th1_des, th2_des, th3_des, th4_des);
-
 
                     // Send data to MATLAB
                     server.sendData(output_data,NUM_OUTPUTS);
