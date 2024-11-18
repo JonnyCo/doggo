@@ -397,7 +397,7 @@ int main (void)
             // Setup experiment
             setupExperiment();
 
-            cycles = 5; //Make this an input      
+            //cycles = 5; //Make this an input      
             // Run experiment
                 while( t.read() < cycle_period*cycles) { 
                     //pc.printf("---------------\n\r");
