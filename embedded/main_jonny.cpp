@@ -87,21 +87,21 @@ const float N = 18.75;
 const float Ir = 0.0035/pow(N,2);
 
 // Timing parameters
-float current_control_period_us = 200.0f;     // 5kHz current control loop
-float impedance_control_period_us = 1000.0f;  // 1kHz impedance control loop
+float current_control_period_us = 50.0f;    //200.0f;  // 5kHz current control loop
+float impedance_control_period_us = 1000.0f; // 1000.0f; // 1kHz impedance control loop
 float start_period, traj_period, end_period, total_experiment_time; 
 Timer experiment_timer; 
 
 // Control parameters
 float current_Kp_Front = 4.0f;         
-float current_Ki_Front = 0.4f;           
-float current_int_max_Front = 3.0f;       
-float duty_max_Front = 0.4;      
+float current_Ki_Front = 0.1f;           
+float current_int_max_Front = 3.0f;  //1 was pretty good     
+float duty_max_Front;      
 
 float current_Kp_Back = 4.0f;         
-float current_Ki_Back = 0.4f;           
-float current_int_max_Back = 3.0f;       
-float duty_max_Back = 0.4;     // look into depricating 
+float current_Ki_Back = 0.1f;           
+float current_int_max_Back = 3.0f;     // lets figure out if something weird is happening   
+float duty_max_Back;     // look into depricating 
 
 float K_h, K_k, D_h, D_k;
 
@@ -130,7 +130,7 @@ void CurrentLoop(){
     current_int1 = fmaxf( fminf(current_int1, current_int_max_Front), -current_int_max_Front);      // anti-windup
     float ff1 = R*current_des1 + k_t*velocity1;                                         // feedforward terms
     duty_cycle1 = (ff1 + current_Kp_Front*err_c1 + current_Ki_Front*current_int1)/supply_voltage;   // PI current controller
-    
+    // look into creating a better integrator wind up solution
     
     float absDuty1 = abs(duty_cycle1);
     if (absDuty1 > duty_max_Front) {
@@ -255,34 +255,34 @@ void setInterpPos(float* q1_des, float* q2_des, float* q3_des, float* q4_des, fl
     // Interpolate within each segment and add initial angles
     switch (segment) {
         case 0:
-            th1_des = angle1_init + q1_des[0] + local_fraction * (q1_des[1] - q1_des[0]);
-            th2_des = angle2_init + q2_des[0] + local_fraction * (q2_des[1] - q2_des[0]);
-            th3_des = angle3_init + q3_des[0] + local_fraction * (q3_des[1] - q3_des[0]);
-            th4_des = angle4_init + q4_des[0] + local_fraction * (q4_des[1] - q4_des[0]);
+            th1_des = q1_des[0] + local_fraction * (q1_des[1] - q1_des[0]);
+            th2_des = q2_des[0] + local_fraction * (q2_des[1] - q2_des[0]);
+            th3_des = q3_des[0] + local_fraction * (q3_des[1] - q3_des[0]);
+            th4_des = q4_des[0] + local_fraction * (q4_des[1] - q4_des[0]);
             break;
         case 1:
-            th1_des = angle1_init + q1_des[1] + local_fraction * (q1_des[2] - q1_des[1]);
-            th2_des = angle2_init + q2_des[1] + local_fraction * (q2_des[2] - q2_des[1]);
-            th3_des = angle3_init + q3_des[1] + local_fraction * (q3_des[2] - q3_des[1]);
-            th4_des = angle4_init + q4_des[1] + local_fraction * (q4_des[2] - q4_des[1]);
+            th1_des = q1_des[1] + local_fraction * (q1_des[2] - q1_des[1]);
+            th2_des = q2_des[1] + local_fraction * (q2_des[2] - q2_des[1]);
+            th3_des = q3_des[1] + local_fraction * (q3_des[2] - q3_des[1]);
+            th4_des = q4_des[1] + local_fraction * (q4_des[2] - q4_des[1]);
             break;
         case 2:
-            th1_des = angle1_init + q1_des[2] + local_fraction * (q1_des[3] - q1_des[2]);
-            th2_des = angle2_init + q2_des[2] + local_fraction * (q2_des[3] - q2_des[2]);
-            th3_des = angle3_init + q3_des[2] + local_fraction * (q3_des[3] - q3_des[2]);
-            th4_des = angle4_init + q4_des[2] + local_fraction * (q4_des[3] - q4_des[2]);
+            th1_des = q1_des[2] + local_fraction * (q1_des[3] - q1_des[2]);
+            th2_des = q2_des[2] + local_fraction * (q2_des[3] - q2_des[2]);
+            th3_des = q3_des[2] + local_fraction * (q3_des[3] - q3_des[2]);
+            th4_des = q4_des[2] + local_fraction * (q4_des[3] - q4_des[2]);
             break;
         case 3:
-            th1_des = angle1_init + q1_des[3] + local_fraction * (q1_des[4] - q1_des[3]);
-            th2_des = angle2_init + q2_des[3] + local_fraction * (q2_des[4] - q2_des[3]);
-            th3_des = angle3_init + q3_des[3] + local_fraction * (q3_des[4] - q3_des[3]);
-            th4_des = angle4_init + q4_des[3] + local_fraction * (q4_des[4] - q4_des[3]);
+            th1_des = q1_des[3] + local_fraction * (q1_des[4] - q1_des[3]);
+            th2_des = q2_des[3] + local_fraction * (q2_des[4] - q2_des[3]);
+            th3_des = q3_des[3] + local_fraction * (q3_des[4] - q3_des[3]);
+            th4_des = q4_des[3] + local_fraction * (q4_des[4] - q4_des[3]);
             break;
         case 4:
-            th1_des = angle1_init + q1_des[4] + local_fraction * (q1_des[0] - q1_des[4]);
-            th2_des = angle2_init + q2_des[4] + local_fraction * (q2_des[0] - q2_des[4]);
-            th3_des = angle3_init + q3_des[4] + local_fraction * (q3_des[0] - q3_des[4]);
-            th4_des = angle4_init + q4_des[4] + local_fraction * (q4_des[0] - q4_des[4]);
+            th1_des = q1_des[4] + local_fraction * (q1_des[0] - q1_des[4]);
+            th2_des = q2_des[4] + local_fraction * (q2_des[0] - q2_des[4]);
+            th3_des = q3_des[4] + local_fraction * (q3_des[0] - q3_des[4]);
+            th4_des = q4_des[4] + local_fraction * (q4_des[0] - q4_des[4]);
             break;
     }
 }
@@ -491,7 +491,7 @@ int main (void)
                     current_des3 = tauq3/k_t;      
                     current_des4 = tauq4/k_t;
 
-                    pc.printf("duty_cycle_1: %f\n",duty_cycle1);
+                    //pc.printf("duty_cycle_1: %f\n",duty_cycle1);
                      
 
 
