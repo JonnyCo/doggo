@@ -11,7 +11,7 @@
 #include "MatrixMath.h"
 
 #define NUM_INPUTS 34  
-#define NUM_OUTPUTS 37
+#define NUM_OUTPUTS 42
 
 #define PULSE_TO_RAD (2.0f*3.14159f / 1200.0f)
 
@@ -104,6 +104,10 @@ float current_int_max_Back = 3.0f;     // lets figure out if something weird is 
 float duty_max_Back;     // look into depricating 
 
 float K_h, K_k, D_h, D_k;
+
+float torques_squared ;
+float torques_front;
+float torques_back;
 
 
 int cycles;
@@ -478,6 +482,11 @@ int main (void)
                     float tauq2 = K_k*(th2_des-th2)+D_k*(dth2_des-dth2);
                     float tauq3 = K_h*(th3_des-th3)+D_h*(dth3_des-dth3);
                     float tauq4 = K_k*(th4_des-th4)+D_k*(dth4_des-dth4);
+
+
+                    torques_front = tauq1 * tauq1 + tauq2 * tauq2;
+                    torques_back =  tauq3 * tauq3 + tauq4 * tauq4;
+                    torques_squared = torques_front + torques_back;
                     
                     //pc.printf("tauq1: %f, tauq2: %f, tauq3: %f, tauq4: %f\n", tauq1, tauq2, tauq3, tauq4);
                     //tauq1 = 0;
@@ -492,9 +501,6 @@ int main (void)
                     current_des4 = tauq4/k_t;
 
                     //pc.printf("duty_cycle_1: %f\n",duty_cycle1);
-                     
-
-
 
                     // Form output to send to MATLAB     
                     float output_data[NUM_OUTPUTS];
@@ -543,6 +549,12 @@ int main (void)
                     output_data[34] = rDesFoot_Back[1];
                     output_data[35] = vDesFoot_Back[0];
                     output_data[36] = vDesFoot_Back[1];
+                    output_data[37] = torques_squared;
+                    output_data[38] = tauq1;
+                    output_data[39] = tauq2;
+                    output_data[40] = tauq3;
+                    output_data[41] = tauq4;
+
                     //pc.printf("th1_des: %f, th2_des: %f, th3_des: %f, th4_des: %f\n", th1_des, th2_des, th3_des, th4_des);
 
                     // Send data to MATLAB
