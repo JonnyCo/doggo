@@ -190,7 +190,12 @@ function output_data = RunTrajectoryExperiment(cycles, angle1_init, angle2_init,
         xB = -new_data(:,30);        
         yB = new_data(:,31);        
         xdesB = -new_data(:,34);      
-        ydesB = new_data(:,35); 
+        ydesB = new_data(:,35);
+        torques_sqaured = new_data(:,38);
+        tauq1 = new_data(:,39);
+        tauq2 = new_data(:,40);
+        tauq3 = new_data(:,41);
+        tauq4 = new_data(:,42);
         
         N = length(pos1);
         
@@ -319,7 +324,7 @@ function output_data = RunTrajectoryExperiment(cycles, angle1_init, angle2_init,
     
     params.timeout  = (start_period+traj_time+end_period);  
     
-    output_size = 37;    % number of outputs expected
+    output_size = 42;    % number of outputs expected
     output_data = RunExperiment(frdm_ip,frdm_port,input,output_size,params);
     linkaxes([a1 a2 a3 a4],'x')
     
